@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Log bicimi.
+
+  Her satirda korelasyon kimligi var: bir istegin tum izini tek grep ile
+  cikarabilmek icin. Kimlik yoksa (zamanlanmis is, acilis logu) "-" yaziliyor,
+  boylece kolon hizasi bozulmuyor.
+
+  JSON log bilincli olarak yok: bu proje tek konteyner olarak calisiyor ve log
+  toplayan bir yigin (ELK, Loki) yok. Olsaydi encoder degistirmek tek satirlik is.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="DESEN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%X{korelasyonKimligi:--}] %-40.40logger{39} : %m%n%wEx"/>
+
+    <appender name="KONSOL" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${DESEN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="KONSOL"/>
+    </root>
+
+    <logger name="tr.ebrar.talep" level="INFO"/>
+
+    <!-- Testcontainers ve Docker istemcisi cok konusuyor, test ciktisini boguyor -->
+    <logger name="org.testcontainers" level="WARN"/>
+    <logger name="com.github.dockerjava" level="WARN"/>
+    <logger name="tc" level="WARN"/>
+</configuration>

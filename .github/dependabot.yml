@@ -1,0 +1,52 @@
+# Bagimlilik guncellemeleri haftalik olarak PR halinde gelir.
+# Elle takip edilen guvenlik yamasi, takip edilmeyen guvenlik yamasidir.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Spring bagimliliklari birlikte yukselmeli; tek tek PR gelirse
+      # surum uyumsuzlugu yasanip her biri ayri ayri kirilir.
+      spring:
+        patterns:
+          - "org.springframework*"
+      test-araclari:
+        patterns:
+          - "org.testcontainers*"
+          - "org.mockito*"
+          - "com.tngtech.archunit*"
+          - "org.awaitility*"
+
+  - package-ecosystem: npm
+    directory: "/frontend"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router-dom"
+      test-araclari:
+        patterns:
+          - "vitest"
+          - "@testing-library/*"
+          - "jsdom"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday

@@ -27,7 +27,9 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Derle ve test et
+      # spotless:check validate fazinda, jacoco esigi verify fazinda calisiyor.
+      # Yani bicim ihlali ve kapsam dususu de derlemeyi kirar.
+      - name: Derle, denetle ve test et
         run: ./mvnw -B -ntp clean verify
 
       - name: Test raporlarini yukle
@@ -58,6 +60,9 @@ jobs:
 
       - name: Bagimliliklari kur
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Testleri calistir
         run: npm test

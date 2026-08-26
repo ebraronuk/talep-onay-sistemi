@@ -32,5 +32,14 @@ services:
     ports:
       - "8080:8080"
 
+  on-yuz:
+    build:
+      context: ./frontend
+    container_name: talep-onay-on-yuz
+    depends_on:
+      - uygulama
+    ports:
+      - "3000:80"
+
 volumes:
   talep_onay_verisi:

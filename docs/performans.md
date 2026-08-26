@@ -155,13 +155,68 @@ Kabul kriteri servis katmanı için %70 idi, %96,5 ile sağlandı.
 
 `domain` paketindeki %75, kapsanmayan `equals`/`hashCode`/`toString` dallarından geliyor; bunlar için test yazmak kapsam sayısını süsler ama bir şey kanıtlamaz. `config` paketi düşük çünkü demo veri yükleyici yalnızca `demo` profilinde çalışıyor ve testlerde devrede değil.
 
-**Toplam: 120 test, hepsi yeşil.**
+**Toplam: 124 arka uç testi, hepsi yeşil.** Ön yüzde ayrıca 15 Vitest testi var.
 
 | Test türü | Adet | Nerede |
 |---|---|---|
 | Saf birim (Spring yok) | 41 | durum makinesi, servis + Mockito |
-| Repository (gerçek PostgreSQL) | 20 | Testcontainers |
+| Repository (gerçek PostgreSQL) | 26 | Testcontainers |
 | HTTP katmanı (`@WebMvcTest`) | 13 | hata sözleşmesi, status kodları |
 | Güvenlik entegrasyonu | 32 | gerçek filtre zinciri |
 | Transaction / bildirim | 7 | rollback davranışı, commit sonrası olay |
+| Korelasyon kimliği | 4 | istek izlenebilirliği |
 | Performans bekçisi | 1 | 1000 kayıtta sayfalama |
+
+---
+
+## 5. Faz 9: Uçtan uca yük testi
+
+**Kabul kriteri.** Okuma p95 < 200 ms, yazma p95 < 400 ms, 50 eşzamanlı istek altında hatasız.
+
+**Yöntem.** `scripts/yuk-testi.mjs`. Harici araç yok, `node scripts/yuk-testi.mjs` ile çalışıyor. 100 istekli ısınma turundan sonra ölçüm alınıyor. Ölçüm HTTP katmanından: JWT doğrulama, yetki kontrolü, sorgu, DTO çevrimi ve JSON serileştirme dahil.
+
+**Ortam.** Apple Silicon (arm64), uygulama yerelde JVM üzerinde, PostgreSQL 16 Docker konteynerinde. 1007 talep kaydı.
+
+```
+Es zamanli : 50
+Istek      : 1000 (+ 100 isinma)
+
+### Okuma: GET /api/talepler (sayfali liste, 20 kayit)
+basarili istek : 1000
+saniyede istek : 1505
+p50            : 29.9 ms
+p95            : 64.2 ms
+p99            : 93.9 ms
+en kotu        : 143.3 ms
+
+### Yazma: POST /api/talepler
+basarili istek : 300
+saniyede istek : 1237
+p50            : 32.2 ms
+p95            : 91.1 ms
+p99            : 111.4 ms
+en kotu        : 117.1 ms
+```
+
+| Ölçüt | Sonuç | Sınır | Durum |
+|---|---|---|---|
+| Okuma p95 | 64,2 ms | 200 ms | Geçti |
+| Okuma p99 | 93,9 ms | - | - |
+| Yazma p95 | 91,1 ms | 400 ms | Geçti |
+| Hata sayısı | 0 | 0 | Geçti |
+| Okuma verimi | 1505 istek/sn | - | - |
+
+### Bellek
+
+| Ölçüt | Değer | Sınır |
+|---|---|---|
+| JVM heap kullanımı (boşta) | 195 MB | - |
+| İşletim sistemi RSS | 331 MB | 512 MB |
+
+`jvm.memory.used` değeri Actuator'ın `/actuator/metrics` ucundan, RSS ise `ps` ile alındı. İkisi arasındaki fark JVM'in kendi metaspace, kod önbelleği ve iş parçacığı yığınları.
+
+### Bu sayılar ne anlatıyor, ne anlatmıyor
+
+**Anlattığı:** Uygulama katmanında bariz bir darboğaz yok. 50 eşzamanlı istek altında ne bağlantı havuzu tükeniyor ne de kuyruk oluşuyor.
+
+**Anlatmadığı:** Bu bir tek makine ölçümü. Gerçek bir üretim ortamında ağ gecikmesi, ayrı bir veritabanı sunucusu, TLS sonlandırma ve yük dengeleyici devrede olur. Bu sayılar tavan değil, taban: gerçek ortamda daha yüksek çıkar.
