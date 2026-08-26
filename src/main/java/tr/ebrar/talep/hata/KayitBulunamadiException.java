@@ -1,4 +1,4 @@
-package tr.ebrar.talep.service.hata;
+package tr.ebrar.talep.hata;
 
 /** Istenen kayit yok. HTTP 404. */
 public class KayitBulunamadiException extends IsKuraliException {

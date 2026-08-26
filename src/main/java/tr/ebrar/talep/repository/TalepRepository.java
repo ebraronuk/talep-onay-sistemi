@@ -1,5 +1,8 @@
 package tr.ebrar.talep.repository;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -7,11 +10,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import tr.ebrar.talep.domain.Talep;
 import tr.ebrar.talep.domain.TalepDurumu;
-
-import java.util.List;
-import java.util.Optional;
 
 public interface TalepRepository extends JpaRepository<Talep, Long>, JpaSpecificationExecutor<Talep> {
 
@@ -72,4 +73,14 @@ public interface TalepRepository extends JpaRepository<Talep, Long>, JpaSpecific
     List<DurumOzeti> durumOzetiGetir(@Param("birimId") Long birimId);
 
     long countByDurumAndBirimId(TalepDurumu durum, Long birimId);
+
+    /**
+     * Kriterlere gore sayfali arama.
+     *
+     * <p>Varsayilan metot olarak burada duruyor ki {@code Specification} kurma isi
+     * kalicilik katmanindan disari cikmasin. Servis yalnizca kriteri dolduruyor.
+     */
+    default Page<Talep> ara(TalepAramaKriteri kriter, Pageable sayfaIstegi) {
+        return findAll(TalepSpecifications.kriterden(kriter), sayfaIstegi);
+    }
 }

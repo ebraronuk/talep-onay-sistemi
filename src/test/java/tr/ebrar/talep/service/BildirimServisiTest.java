@@ -1,5 +1,8 @@
 package tr.ebrar.talep.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -7,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
+
 import tr.ebrar.talep.destek.VeriUretici;
 import tr.ebrar.talep.destek.VeritabaniTestTemeli;
 import tr.ebrar.talep.domain.Bildirim;
@@ -14,15 +18,12 @@ import tr.ebrar.talep.domain.Birim;
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.Rol;
 import tr.ebrar.talep.domain.Talep;
+import tr.ebrar.talep.hata.YetkisizIslemException;
 import tr.ebrar.talep.repository.BildirimRepository;
 import tr.ebrar.talep.repository.BirimRepository;
 import tr.ebrar.talep.repository.KullaniciRepository;
 import tr.ebrar.talep.repository.OnayKaydiRepository;
 import tr.ebrar.talep.repository.TalepRepository;
-import tr.ebrar.talep.service.hata.YetkisizIslemException;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 class BildirimServisiTest extends VeritabaniTestTemeli {

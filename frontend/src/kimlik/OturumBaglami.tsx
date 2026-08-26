@@ -1,17 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../api/istemci';
 import { oturumDeposu, OTURUM_DUSTU } from './oturumDeposu';
+import { OturumBaglami, type OturumDurumu } from './oturumBaglamiTanimi';
 import type { GirisYaniti, KullaniciOzeti, Rol } from '../api/tipler';
-
-interface OturumDurumu {
-  kullanici: KullaniciOzeti | null;
-  girisYap: (kullaniciAdi: string, sifre: string) => Promise<void>;
-  cikisYap: () => void;
-  rolVarMi: (...roller: Rol[]) => boolean;
-}
-
-const OturumBaglami = createContext<OturumDurumu | null>(null);
 
 /**
  * Oturum durumu.
@@ -55,12 +47,4 @@ export function OturumSaglayici({ children }: { children: ReactNode }) {
   );
 
   return <OturumBaglami.Provider value={deger}>{children}</OturumBaglami.Provider>;
-}
-
-export function useOturum() {
-  const baglam = useContext(OturumBaglami);
-  if (!baglam) {
-    throw new Error('useOturum yalnizca OturumSaglayici icinde kullanilabilir');
-  }
-  return baglam;
 }

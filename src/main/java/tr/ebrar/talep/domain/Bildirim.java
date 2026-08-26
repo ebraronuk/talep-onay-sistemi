@@ -10,8 +10,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-import java.util.Objects;
-
 /**
  * Uygulama ici bildirim. E-posta veya SMS gonderimi kapsam disidir.
  */
@@ -83,8 +81,9 @@ public class Bildirim extends DenetimAlanlari {
         return id != null && id.equals(diger.id);
     }
 
+    /** Sabit deger; Hibernate vekili ile gercek nesnenin hashCode'u ayni olmali. */
     @Override
     public int hashCode() {
-        return Objects.hashCode(getClass());
+        return Bildirim.class.hashCode();
     }
 }

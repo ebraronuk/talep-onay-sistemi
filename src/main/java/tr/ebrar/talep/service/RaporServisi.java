@@ -1,14 +1,15 @@
 package tr.ebrar.talep.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import tr.ebrar.talep.domain.TalepDurumu;
 import tr.ebrar.talep.repository.DurumOzeti;
 import tr.ebrar.talep.repository.TalepRepository;
 import tr.ebrar.talep.service.dto.DurumDagilimDto;
 import tr.ebrar.talep.service.dto.RaporDto;
-
-import java.util.List;
 
 /**
  * Yonetici ozet raporu.

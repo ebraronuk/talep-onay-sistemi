@@ -1,4 +1,4 @@
-package tr.ebrar.talep.service.hata;
+package tr.ebrar.talep.hata;
 
 /** Is kurali geregi yapilamayan islem (ornegin taslak olmayan talebin duzenlenmesi). HTTP 400. */
 public class GecersizIslemException extends IsKuraliException {

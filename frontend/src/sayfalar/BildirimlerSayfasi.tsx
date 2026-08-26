@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/istemci';
 import type { Bildirim, SayfaYaniti } from '../api/tipler';
@@ -7,21 +7,30 @@ export function BildirimlerSayfasi() {
   const [sayfa, setSayfa] = useState<SayfaYaniti<Bildirim> | null>(null);
   const [hata, setHata] = useState<string | null>(null);
 
-  const getir = useCallback(async () => {
-    try {
-      setSayfa(await api.get<SayfaYaniti<Bildirim>>('/bildirimler'));
-    } catch {
-      setHata('Bildirimler yüklenemedi');
-    }
-  }, []);
+  const [yenilemeSayaci, setYenilemeSayaci] = useState(0);
 
   useEffect(() => {
-    void getir();
-  }, [getir]);
+    let iptal = false;
+
+    api
+      .get<SayfaYaniti<Bildirim>>('/bildirimler')
+      .then((gelen) => {
+        if (iptal) return;
+        setSayfa(gelen);
+        setHata(null);
+      })
+      .catch(() => {
+        if (!iptal) setHata('Bildirimler yüklenemedi');
+      });
+
+    return () => {
+      iptal = true;
+    };
+  }, [yenilemeSayaci]);
 
   async function okunduIsaretle(id: number) {
     await api.post(`/bildirimler/${id}/okundu`);
-    await getir();
+    setYenilemeSayaci((n) => n + 1);
   }
 
   if (hata) return <p role="alert" className="hata-kutusu">{hata}</p>;

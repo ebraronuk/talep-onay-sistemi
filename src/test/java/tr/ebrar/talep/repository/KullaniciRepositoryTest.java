@@ -1,21 +1,23 @@
 package tr.ebrar.talep.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import jakarta.persistence.EntityManager;
+
 import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+
 import tr.ebrar.talep.destek.VeriUretici;
 import tr.ebrar.talep.destek.VeritabaniTestTemeli;
 import tr.ebrar.talep.destek.VeritabaniTesti;
 import tr.ebrar.talep.domain.Birim;
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.Rol;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @VeritabaniTesti
 class KullaniciRepositoryTest extends VeritabaniTestTemeli {

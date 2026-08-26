@@ -1,4 +1,4 @@
-package tr.ebrar.talep.service.hata;
+package tr.ebrar.talep.hata;
 
 /**
  * Alan diline ait tum hatalarin ortak atasi.

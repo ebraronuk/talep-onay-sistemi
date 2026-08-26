@@ -1,5 +1,12 @@
 package tr.ebrar.talep.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -7,11 +14,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
 import tr.ebrar.talep.destek.VeriUretici;
 import tr.ebrar.talep.destek.VeritabaniTestTemeli;
 import tr.ebrar.talep.domain.Birim;
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.Rol;
+import tr.ebrar.talep.domain.Talep;
 import tr.ebrar.talep.domain.TalepDurumu;
 import tr.ebrar.talep.domain.TalepTuru;
 import tr.ebrar.talep.repository.BildirimRepository;
@@ -23,13 +33,6 @@ import tr.ebrar.talep.service.dto.TalepDetayDto;
 import tr.ebrar.talep.service.komut.Karar;
 import tr.ebrar.talep.service.komut.OnayKarariKomutu;
 import tr.ebrar.talep.service.komut.TalepOlusturKomutu;
-
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 
 /**
  * Transaction sinirlarinin gercekten calistigini kanitlar.
@@ -120,6 +123,35 @@ class TalepServisiTransactionTest extends VeritabaniTestTemeli {
         assertThat(talepRepository.findById(talepId).orElseThrow().getDurum())
                 .isEqualTo(TalepDurumu.ONAYLANDI);
         assertThat(onayKaydiRepository.countByTalepId(talepId)).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("Es zamanli guncellemede ikinci yazim iyimser kilitten doner")
+    void esZamanliGuncellemeIkincisiCakisir() {
+        // Iki amirin ayni talebi ayni anda actigi senaryo. Gercek is parcaciklari
+        // yerine iki ayri "oturum" simule ediliyor: burasi transactional olmayan
+        // bir test oldugu icin findById kendi transaction'ini acip kapatiyor ve
+        // elimizde ayrilmis (detached) bir kopya kaliyor.
+        Talep birinciOturumunKopyasi = talepRepository.findById(talepId).orElseThrow();
+        Long okunanSurum = birinciOturumunKopyasi.getSurum();
+
+        // Ikinci oturum karari veriyor ve commit ediyor: surum ilerliyor.
+        talepServisi.karar(talepId, new OnayKarariKomutu(Karar.ONAYLA, "Once ben"), "trxamir");
+
+        assertThat(talepRepository.findById(talepId).orElseThrow().getSurum())
+                .as("basarili yazim surumu ilerletmeli")
+                .isGreaterThan(okunanSurum);
+
+        // Birinci oturum elindeki eskimis kopyayi yazmaya calisiyor.
+        birinciOturumunKopyasi.setBaslik("Eskimis oturumdan guncelleme");
+
+        assertThatThrownBy(() -> talepRepository.saveAndFlush(birinciOturumunKopyasi))
+                .as("@Version olmasaydi bu yazim sessizce kararin uzerine gecerdi")
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+
+        // Kararin sonucu korunmus olmali.
+        assertThat(talepRepository.findById(talepId).orElseThrow().getBaslik())
+                .isEqualTo("Klavye talebi");
     }
 
     @Test

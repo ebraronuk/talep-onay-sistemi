@@ -1,12 +1,12 @@
 package tr.ebrar.talep.repository;
 
 import jakarta.persistence.criteria.JoinType;
+
 import org.springframework.data.jpa.domain.Specification;
+
 import tr.ebrar.talep.domain.Talep;
 import tr.ebrar.talep.domain.TalepDurumu;
 import tr.ebrar.talep.domain.TalepTuru;
-
-import java.time.Instant;
 
 /**
  * Talep listeleme filtreleri.
@@ -18,6 +18,22 @@ import java.time.Instant;
 public final class TalepSpecifications {
 
     private TalepSpecifications() {
+    }
+
+    /**
+     * Arama kriterinin tamamini tek bir sarta cevirir.
+     *
+     * <p>Iliski getirme (fetch) de burada: cagiran taraf N+1'i onlemeyi
+     * hatirlamak zorunda kalmasin.
+     */
+    public static Specification<Talep> kriterden(TalepAramaKriteri kriter) {
+        return Specification.allOf(
+                talepEdeni(kriter.talepEdenId()),
+                birimi(kriter.birimId()),
+                durumu(kriter.durum()),
+                turu(kriter.tur()),
+                baslikIcerir(kriter.baslik()),
+                iliskileriGetir());
     }
 
     public static Specification<Talep> durumu(TalepDurumu durum) {
@@ -43,14 +59,6 @@ public final class TalepSpecifications {
         }
         String desen = "%" + parca.toLowerCase() + "%";
         return (kok, sorgu, kb) -> kb.like(kb.lower(kok.get("baslik")), desen);
-    }
-
-    public static Specification<Talep> olusturmaTarihiSonrasi(Instant baslangic) {
-        return baslangic == null ? null : (kok, sorgu, kb) -> kb.greaterThanOrEqualTo(kok.get("olusturmaTarihi"), baslangic);
-    }
-
-    public static Specification<Talep> olusturmaTarihiOncesi(Instant bitis) {
-        return bitis == null ? null : (kok, sorgu, kb) -> kb.lessThanOrEqualTo(kok.get("olusturmaTarihi"), bitis);
     }
 
     /**

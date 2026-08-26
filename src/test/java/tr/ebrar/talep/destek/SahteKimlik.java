@@ -1,11 +1,12 @@
 package tr.ebrar.talep.destek;
 
+import java.util.List;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import tr.ebrar.talep.domain.Rol;
 
-import java.util.List;
+import tr.ebrar.talep.domain.Rol;
 
 /**
  * Controller testlerinde istege kimlik takmak icin.

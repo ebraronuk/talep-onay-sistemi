@@ -1,4 +1,4 @@
-package tr.ebrar.talep.service.hata;
+package tr.ebrar.talep.hata;
 
 /**
  * Kullanici kimlik dogrulamasindan gecti ama bu kayit uzerinde yetkisi yok. HTTP 403.

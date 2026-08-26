@@ -1,10 +1,16 @@
-package tr.ebrar.talep.web;
+package tr.ebrar.talep.hata;
 
 import java.time.Instant;
 import java.util.List;
 
 /**
  * Tum hatalarin tek bicimi: { kod, mesaj, detaylar, zaman }.
+ *
+ * <p>web paketinde degil burada duruyor cunku iki ayri yer uretiyor: normal
+ * akista {@code HataYakalayici}, guvenlik filtre zincirinde ise
+ * {@code GuvenlikYapilandirmasi} (oradaki hatalar controller'a hic ulasmadigi
+ * icin advice'a ugramiyor). web paketinde kalsaydi security -> web -> service
+ * -> security seklinde bir dongu olusuyordu.
  *
  * <p>Istemci tarafinda tek bir hata isleyici yazabilmek icin sozlesme her ucta ayni.
  * "detaylar" yalnizca alan bazli dogrulama hatalarinda dolu geliyor, digerlerinde null.

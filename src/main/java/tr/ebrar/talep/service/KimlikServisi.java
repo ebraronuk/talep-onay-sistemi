@@ -7,12 +7,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import tr.ebrar.talep.domain.Kullanici;
+import tr.ebrar.talep.hata.KayitBulunamadiException;
 import tr.ebrar.talep.repository.KullaniciRepository;
 import tr.ebrar.talep.security.JwtUretici;
 import tr.ebrar.talep.service.dto.GirisYanitiDto;
 import tr.ebrar.talep.service.dto.KullaniciOzetDto;
-import tr.ebrar.talep.service.hata.KayitBulunamadiException;
 import tr.ebrar.talep.service.komut.GirisKomutu;
 
 @Service

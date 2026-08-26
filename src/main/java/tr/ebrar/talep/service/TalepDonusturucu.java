@@ -1,5 +1,7 @@
 package tr.ebrar.talep.service;
 
+import java.util.List;
+
 import tr.ebrar.talep.domain.Bildirim;
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.OnayKaydi;
@@ -9,8 +11,6 @@ import tr.ebrar.talep.service.dto.KullaniciOzetDto;
 import tr.ebrar.talep.service.dto.OnayKaydiDto;
 import tr.ebrar.talep.service.dto.TalepDetayDto;
 import tr.ebrar.talep.service.dto.TalepOzetDto;
-
-import java.util.List;
 
 /**
  * Varlik -> DTO cevrimi.

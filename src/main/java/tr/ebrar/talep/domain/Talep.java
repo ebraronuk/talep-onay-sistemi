@@ -1,5 +1,9 @@
 package tr.ebrar.talep.domain;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,11 +18,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import jakarta.persistence.Version;
 
 /**
  * Is akisinin ana varligi.
@@ -34,6 +34,22 @@ public class Talep extends DenetimAlanlari {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /**
+     * Iyimser kilitleme surumu.
+     *
+     * <p>Iki amir ayni talebi ayni anda actigini dusunelim: ikisi de BEKLEMEDE
+     * goruyor, biri onayliyor, digeri reddediyor. Bu kolon olmadan ikinci yazim
+     * birincinin uzerine sessizce geciyor ve denetim izinde iki celiskili kayit
+     * kaliyor. Hibernate her UPDATE'e "where surum = ?" ekliyor; eskimis surumle
+     * gelen ikinci islem sifir satir gunceller ve exception firlatir.
+     *
+     * <p>Kotumser kilit (SELECT FOR UPDATE) yerine iyimser secildi: cakisma nadir,
+     * kilit tutmanin maliyeti ise her istekte odeniyor.
+     */
+    @Version
+    @Column(name = "surum", nullable = false)
+    private Long surum;
 
     @Column(name = "baslik", nullable = false, length = 200)
     private String baslik;
@@ -87,13 +103,15 @@ public class Talep extends DenetimAlanlari {
     /**
      * Durumu hedefe tasir ve denetim kaydini ekler.
      *
-     * @throws IllegalStateException gecis izinli degilse. Servis katmani bunu
-     *         alan diline ait ozel bir exception'a cevirir.
+     * <p>Kural burada, varligin icinde duruyor. Servis katmaninda olsaydi ikinci
+     * bir cagiran (demo veri yukleyici, ileride bir toplu is) kurali atlayabilirdi.
+     * Varlik kendi tutarliligindan kendisi sorumlu.
+     *
+     * @throws GecersizDurumGecisiException gecis durum makinesinde tanimli degilse
      */
     public OnayKaydi durumDegistir(TalepDurumu hedef, Kullanici islemYapan, String aciklama) {
         if (!durum.gecebilirMi(hedef)) {
-            throw new IllegalStateException(
-                    "Gecersiz durum gecisi: " + durum + " -> " + hedef + ". Izinli hedefler: " + durum.izinliHedefler());
+            throw new GecersizDurumGecisiException(durum, hedef);
         }
         TalepDurumu onceki = this.durum;
         this.durum = hedef;
@@ -114,6 +132,10 @@ public class Talep extends DenetimAlanlari {
 
     public Long getId() {
         return id;
+    }
+
+    public Long getSurum() {
+        return surum;
     }
 
     public String getBaslik() {
@@ -167,9 +189,14 @@ public class Talep extends DenetimAlanlari {
         return id != null && id.equals(diger.id);
     }
 
+    /**
+     * Sabit deger. getClass() kullanilmiyor: tembel yuklenmis bir Talep aslinda
+     * Hibernate vekili ve onun getClass()'i farkli bir sinif donuyor. Vekil ile
+     * gercek nesne ayni HashSet'e girerse iki ayri kayit gibi gorunurlerdi.
+     */
     @Override
     public int hashCode() {
-        return Objects.hashCode(getClass());
+        return Talep.class.hashCode();
     }
 
     @Override

@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useOturum } from '../kimlik/OturumBaglami';
+import { useOturum } from '../kimlik/useOturum';
 import { api } from '../api/istemci';
 
 export function Menu() {

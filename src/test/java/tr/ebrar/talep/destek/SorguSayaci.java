@@ -1,6 +1,7 @@
 package tr.ebrar.talep.destek;
 
 import jakarta.persistence.EntityManager;
+
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 

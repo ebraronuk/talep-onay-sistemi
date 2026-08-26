@@ -1,10 +1,11 @@
 package tr.ebrar.talep.repository;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import tr.ebrar.talep.domain.OnayKaydi;
 
-import java.util.List;
+import tr.ebrar.talep.domain.OnayKaydi;
 
 public interface OnayKaydiRepository extends JpaRepository<OnayKaydi, Long> {
 

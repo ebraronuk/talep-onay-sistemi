@@ -1,8 +1,8 @@
 package tr.ebrar.talep.security;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.nio.charset.StandardCharsets;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * talep.jwt.* ayarlari.

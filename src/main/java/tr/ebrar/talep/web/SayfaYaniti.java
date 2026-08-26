@@ -1,8 +1,8 @@
 package tr.ebrar.talep.web;
 
-import org.springframework.data.domain.Page;
-
 import java.util.List;
+
+import org.springframework.data.domain.Page;
 
 /**
  * Sayfali yanit sozlesmesi.

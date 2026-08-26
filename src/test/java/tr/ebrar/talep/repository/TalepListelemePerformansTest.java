@@ -1,6 +1,13 @@
 package tr.ebrar.talep.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+
 import tr.ebrar.talep.destek.VeriUretici;
 import tr.ebrar.talep.destek.VeritabaniTestTemeli;
 import tr.ebrar.talep.destek.VeritabaniTesti;
@@ -18,12 +26,6 @@ import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.Rol;
 import tr.ebrar.talep.domain.Talep;
 import tr.ebrar.talep.domain.TalepDurumu;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Kabul kriteri: 1000 kayitta sayfali listeleme 200 ms altinda kalmali.

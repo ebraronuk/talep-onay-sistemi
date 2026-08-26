@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useOturum } from '../kimlik/OturumBaglami';
+import { useOturum } from '../kimlik/useOturum';
 import { ApiHatasi } from '../api/istemci';
 
 export function GirisSayfasi() {

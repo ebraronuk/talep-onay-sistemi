@@ -1,7 +1,9 @@
 package tr.ebrar.talep.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
+
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,9 +22,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import tr.ebrar.talep.web.HataYaniti;
 
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import tr.ebrar.talep.hata.HataYaniti;
 
 /**
  * Guvenlik yapilandirmasi.

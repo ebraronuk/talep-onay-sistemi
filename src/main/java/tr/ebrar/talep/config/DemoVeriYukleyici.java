@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
 import tr.ebrar.talep.domain.Birim;
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.Rol;
@@ -18,7 +19,6 @@ import tr.ebrar.talep.repository.BirimRepository;
 import tr.ebrar.talep.repository.KullaniciRepository;
 import tr.ebrar.talep.repository.TalepRepository;
 
-import java.util.List;
 
 /**
  * Demo verisi. Yalnizca "demo" profilinde calisir (docker-compose bu profili aciyor).

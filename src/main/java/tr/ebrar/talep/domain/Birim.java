@@ -7,8 +7,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.util.Objects;
-
 @Entity
 @Table(name = "birim")
 public class Birim extends DenetimAlanlari {
@@ -68,9 +66,10 @@ public class Birim extends DenetimAlanlari {
         return id != null && id.equals(diger.id);
     }
 
+    /** Sabit deger; Hibernate vekili ile gercek nesnenin hashCode'u ayni olmali. */
     @Override
     public int hashCode() {
-        return Objects.hashCode(getClass());
+        return Birim.class.hashCode();
     }
 
     @Override

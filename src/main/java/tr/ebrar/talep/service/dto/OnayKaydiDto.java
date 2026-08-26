@@ -1,8 +1,8 @@
 package tr.ebrar.talep.service.dto;
 
-import tr.ebrar.talep.domain.TalepDurumu;
-
 import java.time.Instant;
+
+import tr.ebrar.talep.domain.TalepDurumu;
 
 public record OnayKaydiDto(
         Long id,

@@ -1,6 +1,11 @@
 package tr.ebrar.talep.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
+
 import tr.ebrar.talep.destek.SorguSayaci;
 import tr.ebrar.talep.destek.VeriUretici;
 import tr.ebrar.talep.destek.VeritabaniTestTemeli;
@@ -17,10 +23,6 @@ import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.Rol;
 import tr.ebrar.talep.domain.Talep;
 import tr.ebrar.talep.domain.TalepDurumu;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * N+1 sorgu probleminin kaniti ve cozumu.

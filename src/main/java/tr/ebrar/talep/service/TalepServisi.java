@@ -1,35 +1,35 @@
 package tr.ebrar.talep.service;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.OnayKaydi;
 import tr.ebrar.talep.domain.Rol;
 import tr.ebrar.talep.domain.Talep;
 import tr.ebrar.talep.domain.TalepDurumu;
+import tr.ebrar.talep.hata.GecersizIslemException;
+import tr.ebrar.talep.hata.KayitBulunamadiException;
+import tr.ebrar.talep.hata.YetkisizIslemException;
 import tr.ebrar.talep.repository.KullaniciRepository;
 import tr.ebrar.talep.repository.OnayKaydiRepository;
+import tr.ebrar.talep.repository.TalepAramaKriteri;
 import tr.ebrar.talep.repository.TalepRepository;
-import tr.ebrar.talep.repository.TalepSpecifications;
 import tr.ebrar.talep.service.dto.TalepDetayDto;
 import tr.ebrar.talep.service.dto.TalepOzetDto;
-import tr.ebrar.talep.service.hata.GecersizDurumGecisiException;
-import tr.ebrar.talep.service.hata.GecersizIslemException;
-import tr.ebrar.talep.service.hata.KayitBulunamadiException;
-import tr.ebrar.talep.service.hata.YetkisizIslemException;
+import tr.ebrar.talep.service.komut.Karar;
 import tr.ebrar.talep.service.komut.OnayKarariKomutu;
 import tr.ebrar.talep.service.komut.TalepFiltresi;
 import tr.ebrar.talep.service.komut.TalepGuncelleKomutu;
 import tr.ebrar.talep.service.komut.TalepOlusturKomutu;
 import tr.ebrar.talep.service.olay.TalepDurumuDegistiOlayi;
-
-import java.util.List;
 
 /**
  * Talep is akisinin tamami burada.
@@ -131,7 +131,7 @@ public class TalepServisi {
         if (talep.sahibiMi(amir.getId())) {
             throw new GecersizIslemException("Kendi talebinizi onaylayamaz veya reddedemezsiniz");
         }
-        if (komut.karar() == tr.ebrar.talep.service.komut.Karar.REDDET
+        if (komut.karar() == Karar.REDDET
                 && (komut.aciklama() == null || komut.aciklama().isBlank())) {
             throw new GecersizIslemException("Ret islemi icin gerekce yazmak zorunlu");
         }
@@ -161,20 +161,16 @@ public class TalepServisi {
     public Page<TalepOzetDto> listele(TalepFiltresi filtre, Pageable sayfaIstegi, String kullaniciAdi) {
         Kullanici aktif = kullaniciBul(kullaniciAdi);
 
-        Specification<Talep> kapsam = switch (aktif.getRol()) {
-            case PERSONEL -> TalepSpecifications.talepEdeni(aktif.getId());
-            case AMIR -> TalepSpecifications.birimi(aktif.getBirim().getId());
-            case YONETICI -> TalepSpecifications.birimi(filtre.birimId());
+        TalepAramaKriteri kriter = switch (aktif.getRol()) {
+            case PERSONEL -> TalepAramaKriteri.kendiTalepleri(
+                    aktif.getId(), filtre.durum(), filtre.tur(), filtre.baslik());
+            case AMIR -> TalepAramaKriteri.birimTalepleri(
+                    aktif.getBirim().getId(), filtre.durum(), filtre.tur(), filtre.baslik());
+            case YONETICI -> TalepAramaKriteri.tumTalepler(
+                    filtre.birimId(), filtre.durum(), filtre.tur(), filtre.baslik());
         };
 
-        Specification<Talep> kriter = Specification.allOf(
-                kapsam,
-                TalepSpecifications.durumu(filtre.durum()),
-                TalepSpecifications.turu(filtre.tur()),
-                TalepSpecifications.baslikIcerir(filtre.baslik()),
-                TalepSpecifications.iliskileriGetir());
-
-        return talepRepository.findAll(kriter, sayfaIstegi).map(TalepDonusturucu::ozet);
+        return talepRepository.ara(kriter, sayfaIstegi).map(TalepDonusturucu::ozet);
     }
 
     // --- ic yardimcilar -------------------------------------------------
@@ -182,13 +178,10 @@ public class TalepServisi {
     private void durumDegistir(Talep talep, TalepDurumu hedef, Kullanici islemYapan, String aciklama) {
         TalepDurumu onceki = talep.getDurum();
 
-        OnayKaydi kayit;
-        try {
-            kayit = talep.durumDegistir(hedef, islemYapan, aciklama);
-        } catch (IllegalStateException e) {
-            // Varlik teknik bir exception firlatiyor; disariya alan diline ait olani cikiyor.
-            throw new GecersizDurumGecisiException(onceki, hedef);
-        }
+        // Gecis kontrolu varligin icinde; gecersizse GecersizDurumGecisiException
+        // firlatiyor ve HataYakalayici bunu 409'a ceviriyor. Burada try/catch yok:
+        // exception zaten alan diline ait, cevirmeye gerek kalmiyor.
+        OnayKaydi kayit = talep.durumDegistir(hedef, islemYapan, aciklama);
 
         // Denetim kaydi ayni transaction icinde yaziliyor. Burasi patlarsa talebin
         // durumu da geri sariyor: yarim denetim izi, hic olmamasindan kotu.

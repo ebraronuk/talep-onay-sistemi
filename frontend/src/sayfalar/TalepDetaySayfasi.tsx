@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, ApiHatasi } from '../api/istemci';
 import { DurumRozeti } from '../bilesenler/DurumRozeti';
 import { DURUM_ETIKETLERI, TUR_ETIKETLERI } from '../api/tipler';
 import type { TalepDetayi } from '../api/tipler';
-import { useOturum } from '../kimlik/OturumBaglami';
+import { useOturum } from '../kimlik/useOturum';
 
 export function TalepDetaySayfasi() {
   const { id } = useParams<{ id: string }>();
@@ -15,26 +15,37 @@ export function TalepDetaySayfasi() {
   const [gerekce, setGerekce] = useState('');
   const [islemde, setIslemde] = useState(false);
 
-  const getir = useCallback(async () => {
-    setHata(null);
-    try {
-      setTalep(await api.get<TalepDetayi>(`/talepler/${id}`));
-    } catch (e) {
-      setHata(e instanceof ApiHatasi ? e.message : 'Talep yüklenemedi');
-    }
-  }, [id]);
+  // Islem sonrasi yeniden yukleme icin sayac; efekt buna bagli.
+  // Ayri bir "getir" fonksiyonunu disaridan cagirmak yerine boyle yapildi ki
+  // veri cekme mantigi tek yerde ve iptal edilebilir kalsin.
+  const [yenilemeSayaci, setYenilemeSayaci] = useState(0);
 
   useEffect(() => {
-    void getir();
-  }, [getir]);
+    let iptal = false;
+
+    api
+      .get<TalepDetayi>(`/talepler/${id}`)
+      .then((gelen) => {
+        if (iptal) return;
+        setTalep(gelen);
+        setHata(null);
+      })
+      .catch((e: unknown) => {
+        if (!iptal) setHata(e instanceof ApiHatasi ? e.message : 'Talep yüklenemedi');
+      });
+
+    return () => {
+      iptal = true;
+    };
+  }, [id, yenilemeSayaci]);
 
   async function islemYap(calistir: () => Promise<TalepDetayi | void>) {
     setIslemde(true);
-    setHata(null);
     try {
       await calistir();
-      await getir();
+      setHata(null);
       setGerekce('');
+      setYenilemeSayaci((n) => n + 1);
     } catch (e) {
       setHata(e instanceof ApiHatasi ? e.message : 'İşlem yapılamadı');
     } finally {

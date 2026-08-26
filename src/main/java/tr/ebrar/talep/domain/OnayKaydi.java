@@ -12,8 +12,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-import java.util.Objects;
-
 /**
  * Denetim izi. Bir kez yazilir, guncellenmez, silinmez.
  *
@@ -95,9 +93,10 @@ public class OnayKaydi extends DenetimAlanlari {
         return id != null && id.equals(diger.id);
     }
 
+    /** Sabit deger; Hibernate vekili ile gercek nesnenin hashCode'u ayni olmali. */
     @Override
     public int hashCode() {
-        return Objects.hashCode(getClass());
+        return OnayKaydi.class.hashCode();
     }
 
     @Override

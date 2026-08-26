@@ -1,6 +1,11 @@
 package tr.ebrar.talep.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
+
 import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+
 import tr.ebrar.talep.destek.VeriUretici;
 import tr.ebrar.talep.destek.VeritabaniTestTemeli;
 import tr.ebrar.talep.destek.VeritabaniTesti;
@@ -18,10 +24,6 @@ import tr.ebrar.talep.domain.Rol;
 import tr.ebrar.talep.domain.Talep;
 import tr.ebrar.talep.domain.TalepDurumu;
 import tr.ebrar.talep.domain.TalepTuru;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @VeritabaniTesti
 class TalepRepositoryTest extends VeritabaniTestTemeli {

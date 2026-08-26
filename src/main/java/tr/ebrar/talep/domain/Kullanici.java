@@ -12,8 +12,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-import java.util.Objects;
-
 @Entity
 @Table(name = "kullanici")
 public class Kullanici extends DenetimAlanlari {
@@ -131,9 +129,10 @@ public class Kullanici extends DenetimAlanlari {
         return id != null && id.equals(diger.id);
     }
 
+    /** Sabit deger; Hibernate vekili ile gercek nesnenin hashCode'u ayni olmali. */
     @Override
     public int hashCode() {
-        return Objects.hashCode(getClass());
+        return Kullanici.class.hashCode();
     }
 
     /** Sifre ozeti kasitli olarak disarida birakildi; log satirlarina sizmasin. */

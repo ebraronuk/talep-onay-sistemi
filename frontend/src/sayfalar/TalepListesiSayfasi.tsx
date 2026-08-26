@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/istemci';
 import { DurumRozeti } from '../bilesenler/DurumRozeti';
 import { DURUM_ETIKETLERI, TUR_ETIKETLERI } from '../api/tipler';
 import type { SayfaYaniti, TalepDurumu, TalepOzeti } from '../api/tipler';
-import { useOturum } from '../kimlik/OturumBaglami';
+import { useOturum } from '../kimlik/useOturum';
 
 const SAYFA_BOYUTU = 10;
 
@@ -13,30 +13,42 @@ export function TalepListesiSayfasi() {
   const [sayfa, setSayfa] = useState<SayfaYaniti<TalepOzeti> | null>(null);
   const [sayfaNo, setSayfaNo] = useState(0);
   const [durumFiltresi, setDurumFiltresi] = useState<TalepDurumu | ''>('');
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState<string | null>(null);
+  // Ayri ayri "yukleniyor" ve "hata" bayragi yerine tek bir durum: ikisi ayni anda
+  // dogru olamaz. Ayrica efektin icinde senkron setState cagirmiyoruz; ilk durum
+  // degisikligi await'ten sonra oluyor. Boylece filtre degistiginde ekran bosalip
+  // sonra dolmuyor, mevcut liste yenisi gelene kadar duruyor.
+  const [durum, setDurum] = useState<'yukleniyor' | 'hazir' | 'hata'>('yukleniyor');
 
-  const getir = useCallback(async () => {
-    setYukleniyor(true);
-    setHata(null);
-    try {
-      const parametreler = new URLSearchParams({
-        page: String(sayfaNo),
-        size: String(SAYFA_BOYUTU),
-      });
-      if (durumFiltresi) parametreler.set('durum', durumFiltresi);
-
-      setSayfa(await api.get<SayfaYaniti<TalepOzeti>>(`/talepler?${parametreler}`));
-    } catch {
-      setHata('Talepler yüklenemedi');
-    } finally {
-      setYukleniyor(false);
-    }
-  }, [sayfaNo, durumFiltresi]);
-
+  // Veri cekme dogrudan efektin icinde ve bir iptal bayragiyla.
+  //
+  // Bu yalnizca lint kurali icin degil: kullanici filtreyi hizli hizli degistirirse
+  // istekler yola cikis sirasiyla ayni sirada donmeyebiliyor. Iptal bayragi olmadan
+  // eski bir yanit yenisinin uzerine yazip ekranda yanlis liste birakiyor.
+  // Temizlik fonksiyonu, efekt yeniden calismadan once eskisini gecersiz kiliyor.
   useEffect(() => {
-    void getir();
-  }, [getir]);
+    let iptal = false;
+
+    const parametreler = new URLSearchParams({
+      page: String(sayfaNo),
+      size: String(SAYFA_BOYUTU),
+    });
+    if (durumFiltresi) parametreler.set('durum', durumFiltresi);
+
+    api
+      .get<SayfaYaniti<TalepOzeti>>(`/talepler?${parametreler}`)
+      .then((gelen) => {
+        if (iptal) return;
+        setSayfa(gelen);
+        setDurum('hazir');
+      })
+      .catch(() => {
+        if (!iptal) setDurum('hata');
+      });
+
+    return () => {
+      iptal = true;
+    };
+  }, [sayfaNo, durumFiltresi]);
 
   const baslik =
     kullanici?.rol === 'PERSONEL'
@@ -68,14 +80,14 @@ export function TalepListesiSayfasi() {
         </label>
       </div>
 
-      {hata && <p role="alert" className="hata-kutusu">{hata}</p>}
-      {yukleniyor && <p>Yükleniyor...</p>}
+      {durum === 'hata' && <p role="alert" className="hata-kutusu">Talepler yüklenemedi</p>}
+      {durum === 'yukleniyor' && <p>Yükleniyor...</p>}
 
-      {!yukleniyor && sayfa && sayfa.icerik.length === 0 && (
+      {durum === 'hazir' && sayfa && sayfa.icerik.length === 0 && (
         <p className="bos-durum">Bu filtreye uyan talep yok.</p>
       )}
 
-      {!yukleniyor && sayfa && sayfa.icerik.length > 0 && (
+      {durum === 'hazir' && sayfa && sayfa.icerik.length > 0 && (
         <table className="tablo">
           <thead>
             <tr>

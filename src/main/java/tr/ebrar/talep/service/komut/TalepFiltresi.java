@@ -16,8 +16,4 @@ public record TalepFiltresi(
         Long birimId,
         String baslik
 ) {
-
-    public static TalepFiltresi bos() {
-        return new TalepFiltresi(null, null, null, null);
-    }
 }

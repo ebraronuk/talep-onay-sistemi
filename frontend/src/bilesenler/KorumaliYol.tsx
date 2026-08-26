@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import { useOturum } from '../kimlik/OturumBaglami';
+import { useOturum } from '../kimlik/useOturum';
 import type { Rol } from '../api/tipler';
 
 /**
