@@ -1,5 +1,5 @@
 # Cok asamali derleme: derleme asamasindaki JDK ve Maven onbellegi son imaja tasinmaz.
-FROM eclipse-temurin:21-jdk AS derleme
+FROM eclipse-temurin:25-jdk AS derleme
 
 WORKDIR /derleme
 
@@ -12,7 +12,7 @@ COPY src ./src
 RUN ./mvnw -B -ntp clean package -DskipTests
 
 # Calisma asamasi: yalnizca JRE ve uygulama jar'i.
-FROM eclipse-temurin:21-jre AS calisma
+FROM eclipse-temurin:25-jre AS calisma
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
