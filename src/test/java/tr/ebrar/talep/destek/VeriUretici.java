@@ -35,4 +35,17 @@ public final class VeriUretici {
     public static Talep talep(String baslik, Kullanici talepEden) {
         return new Talep(baslik, baslik + " icin aciklama metni.", TalepTuru.DIGER, talepEden);
     }
+
+    /**
+     * Varliklara elle id verir.
+     *
+     * <p>Sadece Mockito testleri icin. Orada veritabani yok, dolayisiyla id de
+     * uretilmiyor; ama servis kodu id uzerinden karsilastirma yapiyor
+     * (sahibiMi, birim esitligi). Uretim kodunda id setter'i bilerek yok,
+     * bu yuzden yansima (reflection) ile veriyoruz.
+     */
+    public static <T> T kimlikVer(T varlik, Long id) {
+        org.springframework.test.util.ReflectionTestUtils.setField(varlik, "id", id);
+        return varlik;
+    }
 }

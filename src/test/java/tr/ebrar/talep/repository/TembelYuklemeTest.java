@@ -91,7 +91,7 @@ class TembelYuklemeTest extends VeritabaniTestTemeli {
         // PersistenceUnitUtil.
         assertThat(koleksiyonYuklendiMi(talep)).as("koleksiyon baslangicta yuklenmemis").isFalse();
 
-        assertThat(talep.getOnayKayitlari()).hasSize(1);
+        assertThat(talep.getOnayKayitlari()).hasSize(2); // olusturma + onaya gonderme
 
         assertThat(koleksiyonYuklendiMi(talep)).as("erisimden sonra yuklendi").isTrue();
     }
@@ -116,8 +116,9 @@ class TembelYuklemeTest extends VeritabaniTestTemeli {
     @DisplayName("OnayKaydi.talep ve OnayKaydi.islemYapan tembel")
     void onayKaydiIliskileriTembel() {
         OnayKaydi kayit = entityManager.createQuery(
-                        "select ok from OnayKaydi ok where ok.talep.id = :talepId", OnayKaydi.class)
+                        "select ok from OnayKaydi ok where ok.talep.id = :talepId order by ok.id", OnayKaydi.class)
                 .setParameter("talepId", talepId)
+                .setMaxResults(1)
                 .getSingleResult();
 
         assertThat(Hibernate.isInitialized(kayit.getTalep())).isFalse();
@@ -157,6 +158,6 @@ class TembelYuklemeTest extends VeritabaniTestTemeli {
         assertThat(Hibernate.isInitialized(talep.getTalepEden())).isTrue();
         assertThat(Hibernate.isInitialized(talep.getBirim())).isTrue();
         assertThat(Hibernate.isInitialized(talep.getOnayKayitlari())).isTrue();
-        assertThat(talep.getOnayKayitlari()).hasSize(1);
+        assertThat(talep.getOnayKayitlari()).hasSize(2);
     }
 }

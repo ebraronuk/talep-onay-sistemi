@@ -77,6 +77,11 @@ public class Talep extends DenetimAlanlari {
         this.talepEden = talepEden;
         this.birim = talepEden.getBirim();
         this.durum = TalepDurumu.TASLAK;
+
+        // Olusturmak da bir degisiklik. Denetim izinin ilk satirini burada yaziyoruz ki
+        // "bu talep ne zaman, kim tarafindan acilmis" sorusunun cevabi tek yerde dursun.
+        // oncekiDurum null: oncesi yok.
+        this.onayKayitlari.add(new OnayKaydi(this, null, TalepDurumu.TASLAK, talepEden, "Talep olusturuldu"));
     }
 
     /**

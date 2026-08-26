@@ -165,7 +165,8 @@ class TalepRepositoryTest extends VeritabaniTestTemeli {
         Talep yeniden = talepRepository.detayGetir(talep.getId()).orElseThrow();
 
         assertThat(yeniden.getDurum()).isEqualTo(TalepDurumu.ONAYLANDI);
-        assertThat(yeniden.getOnayKayitlari()).hasSize(2);
+        // 3 kayit: olusturma, onaya gonderme, onaylama
+        assertThat(yeniden.getOnayKayitlari()).hasSize(3);
         assertThat(yeniden.getOnayKayitlari().getLast().getYeniDurum()).isEqualTo(TalepDurumu.ONAYLANDI);
         assertThat(yeniden.getOnayKayitlari().getLast().getAciklama()).isEqualTo("Uygundur");
     }
