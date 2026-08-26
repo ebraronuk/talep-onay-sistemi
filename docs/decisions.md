@@ -141,3 +141,44 @@ Aşağıdakiler bilinçli olarak kapsam dışıdır. "İleride lazım olur" gere
 **Gerekçe.** Migration klasörü şemanın tanımıdır ve üretimde de çalışır. Demo verisini oraya koymak, üretim veritabanına test kullanıcısı yazmak anlamına gelir. Ayrıca Flyway sürüm numaraları tüm konumlar arasında benzersiz olmak zorunda olduğundan, konum bazlı ayırma ilerideki sürüm çakışmalarına açık bir tuzak.
 
 **Reddedilen alternatif.** `V900__demo_verisi.sql`. Reddedildi.
+
+---
+
+## K-011: Bildirim ana işlemden ayrı transaction'da yazılır
+
+**Karar.** Talep durumu değiştiğinde bir uygulama olayı yayınlanır; bildirim kaydını `@TransactionalEventListener(phase = AFTER_COMMIT)` ile çalışan ve `REQUIRES_NEW` ile kendi transaction'ını açan bir dinleyici yazar.
+
+**Gerekçe.** Onay işlemi ile bildirim yazımı farklı önem seviyesinde. Onay iş açısından asıl olan; bildirim yan etki. Bildirim tablosuna yazım herhangi bir sebeple başarısız olursa onayın geri sarmasını istemiyoruz: amir onayı verdi, sistem "olmadı" derse iş durur.
+
+**Reddedilen alternatif.** Bildirimi aynı transaction içinde servis metodundan doğrudan yazmak. Reddedildi çünkü bildirimdeki bir hata, hiç ilgisi olmayan bir onay işlemini geri sarardı.
+
+**Dikkat edilen nokta.** Hata yutulmuyor, `ERROR` seviyesinde loglanıyor. Sessizce yutulsaydı kimsenin haberi olmadan bildirimler kaybolurdu. Ayrıca olay nesnesi varlık değil **id** taşıyor: dinleyici commit'ten sonra çalıştığı için varlıklar o noktada kalıcılık bağlamından ayrılmış oluyor.
+
+**Kanıt.** `TalepServisiTransactionTest.rollbackOlanIslemdeBildirimYok` ve `commitSonrasiBildirimYazilir`.
+
+---
+
+## K-012: Ön yüzde token `sessionStorage`'da tutulur
+
+**Karar.** JWT tarayıcıda `sessionStorage` içinde saklanır.
+
+**Gerekçe.** Arka uç bilinçli olarak stateless ve çerezsiz (K-003). Token'ı istemcinin bir yerde tutması gerekiyor. `sessionStorage`, `localStorage`'a göre daha dar: sekme kapanınca silinir.
+
+**Bilinen zayıflık.** XSS. Sayfaya kod enjekte edebilen biri token'ı okuyabilir. `HttpOnly` çerez bu saldırıya kapalıdır ama beraberinde CSRF korumasını ve aynı site ayarlarını getirir; bu da stateless tasarımdan vazgeçmek anlamına gelir.
+
+**Reddedilen alternatif.** `localStorage`. Reddedildi: kalıcı olması ek fayda sağlamıyor, saldırı yüzeyini genişletiyor.
+
+---
+
+## K-013: Testler çalışma sırasından bağımsız olmalı
+
+**Karar.** Hiçbir test başka bir testin bıraktığı veriye güvenmez ve kendi verisini geride bırakmaz. Surefire çalışma sırası `alphabetical` olarak sabitlendi.
+
+**Gerekçe.** Bu kural kâğıt üzerinde değil, gerçek bir arızadan sonra yazıldı. Yerelde 120 test yeşilken CI kırmızı yandı: Surefire'ın varsayılan `filesystem` sırası iki ortamda farklı çıkıyor ve `@SpringBootTest` sınıflarının commit ettiği veri, sonra çalışan `@DataJpaTest` sınıflarının kurulumunu tekillik kısıtından patlatıyordu.
+
+İki önlem alındı:
+
+1. `@Transactional` olmayan entegrasyon testleri hem `@BeforeEach` hem `@AfterEach` içinde temizlik yapar.
+2. Her test sınıfı kendi benzersiz birim kodlarını kullanır (`RPO-BT`, `GVN-BT`, `TRX`, `BLD`).
+
+Sıranın sabitlenmesi asıl çözüm değil, hatayı tekrar üretilebilir yapan destek önlemi. Doğrulama: `./mvnw test -Dsurefire.runOrder=reversealphabetical` de yeşil.

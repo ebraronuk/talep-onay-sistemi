@@ -157,6 +157,18 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Varsayilan sira "filesystem": yerelde ve CI'da farkli calisiyor,
+                         bu yuzden bir sira bagimliligi yerelde gorunmeden CI'da patliyor.
+                         Alfabetik sabitleyerek hatayi tekrar uretilebilir yaptik.
+                         Testlerin siradan bagimsiz olmasi yine de sart; bkz. decisions K-013. -->
+                    <runOrder>alphabetical</runOrder>
+                </configuration>
+            </plugin>
+
+            <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
                 <configuration>

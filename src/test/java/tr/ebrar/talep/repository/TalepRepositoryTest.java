@@ -39,8 +39,8 @@ class TalepRepositoryTest extends VeritabaniTestTemeli {
 
     @BeforeEach
     void hazirla() {
-        btgm = VeriUretici.birim("BTGM");
-        muhasebe = VeriUretici.birim("MUH");
+        btgm = VeriUretici.birim("RPO-BT");
+        muhasebe = VeriUretici.birim("RPO-MH");
         entityManager.persist(btgm);
         entityManager.persist(muhasebe);
 
@@ -75,7 +75,7 @@ class TalepRepositoryTest extends VeritabaniTestTemeli {
 
         assertThat(sayfa.getTotalElements()).isEqualTo(3);
         assertThat(sayfa.getContent()).allSatisfy(talep ->
-                assertThat(talep.getBirim().getKod()).isEqualTo("BTGM"));
+                assertThat(talep.getBirim().getKod()).isEqualTo("RPO-BT"));
     }
 
     @Test

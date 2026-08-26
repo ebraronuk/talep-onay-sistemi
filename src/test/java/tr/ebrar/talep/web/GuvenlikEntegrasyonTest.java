@@ -2,6 +2,7 @@ package tr.ebrar.talep.web;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -88,14 +89,10 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
 
     @BeforeEach
     void hazirla() throws Exception {
-        bildirimRepository.deleteAllInBatch();
-        onayKaydiRepository.deleteAllInBatch();
-        talepRepository.deleteAllInBatch();
-        kullaniciRepository.deleteAllInBatch();
-        birimRepository.deleteAllInBatch();
+        temizle();
 
-        Birim btgm = birimRepository.save(new Birim("BTGM", "Bilgi Teknolojileri"));
-        Birim muhasebe = birimRepository.save(new Birim("MUH", "Muhasebe"));
+        Birim btgm = birimRepository.save(new Birim("GVN-BT", "Guvenlik testi BT birimi"));
+        Birim muhasebe = birimRepository.save(new Birim("GVN-MH", "Guvenlik testi muhasebe birimi"));
 
         Kullanici personel = kaydet("g.personel", Rol.PERSONEL, btgm);
         Kullanici digerPersonel = kaydet("g.diger", Rol.PERSONEL, btgm);
@@ -113,6 +110,22 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         amirToken = girisYap("g.amir");
         baskaBirimAmirToken = girisYap("g.muhamir");
         yoneticiToken = girisYap("g.yonetici");
+    }
+
+    /**
+     * Bu sinif @Transactional DEGIL: gercek filtre zinciriyle calismasi icin
+     * istekler kendi transaction'larini aciyor ve veri commit oluyor. Dolayisiyla
+     * temizligi elle yapmak zorundayiz. Hem oncesinde hem sonrasinda temizliyoruz:
+     * sadece @BeforeEach yeterli degildi, son test kendi verisini geride birakip
+     * baska bir sinifin kurulumunu tekil kisittan patlatiyordu (CI'da yakalandi).
+     */
+    @AfterEach
+    void temizle() {
+        bildirimRepository.deleteAllInBatch();
+        onayKaydiRepository.deleteAllInBatch();
+        talepRepository.deleteAllInBatch();
+        kullaniciRepository.deleteAllInBatch();
+        birimRepository.deleteAllInBatch();
     }
 
     private Kullanici kaydet(String kullaniciAdi, Rol rol, Birim birim) {
