@@ -28,6 +28,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import tr.ebrar.talep.domain.GecersizDurumGecisiException;
+import tr.ebrar.talep.hata.CokFazlaDenemeException;
 import tr.ebrar.talep.hata.GecersizIslemException;
 import tr.ebrar.talep.hata.HataYaniti;
 import tr.ebrar.talep.hata.IsKuraliException;
@@ -81,6 +82,11 @@ public class HataYakalayici extends ResponseEntityExceptionHandler {
     @ExceptionHandler(GecersizIslemException.class)
     public ResponseEntity<HataYaniti> gecersizIslem(GecersizIslemException e) {
         return yanit(HttpStatus.BAD_REQUEST, e);
+    }
+
+    @ExceptionHandler(CokFazlaDenemeException.class)
+    public ResponseEntity<HataYaniti> cokFazlaDeneme(CokFazlaDenemeException e) {
+        return yanit(HttpStatus.TOO_MANY_REQUESTS, e);
     }
 
     // --- kalicilik ve guvenlik kaynakli hatalar -------------------------

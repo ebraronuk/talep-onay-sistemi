@@ -58,7 +58,7 @@ public class GuvenlikYapilandirmasi {
                 .sessionManagement(oturum -> oturum.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(istekler -> istekler
                         // Giris ucu acik olmak zorunda, yoksa kimse token alamaz.
-                        .requestMatchers(HttpMethod.POST, "/api/kimlik/giris").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/kimlik/giris").permitAll()
                         // Konteyner ve yuk dengeleyici saglik kontrolu icin acik.
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         // API dokumani gelistirme kolayligi icin acik; kapatilmak istenirse

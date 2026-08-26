@@ -80,17 +80,17 @@ class TalepControllerTest {
             "BTGM", "Bilgi Teknolojileri", Instant.now(), Instant.now(), List.of());
 
     @Test
-    @DisplayName("POST /api/talepler 201 doner ve Location basligi verir")
+    @DisplayName("POST /api/v1/talepler 201 doner ve Location basligi verir")
     void olusturma201() throws Exception {
         when(talepServisi.olustur(any(TalepOlusturKomutu.class), eq("ayse"))).thenReturn(ORNEK_DETAY);
 
-        mockMvc.perform(post("/api/talepler")
+        mockMvc.perform(post("/api/v1/talepler")
                         .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonYazici.writeValueAsString(
                                 new TalepOlusturKomutu("Ergonomik sandalye", "Bel agrisi nedeniyle", TalepTuru.DONANIM))))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/api/talepler/7"))
+                .andExpect(header().string("Location", "http://localhost/api/v1/talepler/7"))
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.durum").value("TASLAK"));
     }
@@ -98,7 +98,7 @@ class TalepControllerTest {
     @Test
     @DisplayName("Bos baslik 400 ve alan bazli detay doner")
     void dogrulamaHatasi400() throws Exception {
-        mockMvc.perform(post("/api/talepler")
+        mockMvc.perform(post("/api/v1/talepler")
                         .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -115,7 +115,7 @@ class TalepControllerTest {
     void uzunBaslik400() throws Exception {
         String uzun = "a".repeat(201);
 
-        mockMvc.perform(post("/api/talepler")
+        mockMvc.perform(post("/api/v1/talepler")
                         .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -128,7 +128,7 @@ class TalepControllerTest {
     @Test
     @DisplayName("Bozuk JSON 400 doner, ic detay sizmaz")
     void bozukGovde400() throws Exception {
-        mockMvc.perform(post("/api/talepler")
+        mockMvc.perform(post("/api/v1/talepler")
                         .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{ bu gecerli json degil "))
@@ -140,7 +140,7 @@ class TalepControllerTest {
     @Test
     @DisplayName("Tanimsiz enum degeri 400 doner")
     void gecersizEnum400() throws Exception {
-        mockMvc.perform(post("/api/talepler")
+        mockMvc.perform(post("/api/v1/talepler")
                         .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -156,7 +156,7 @@ class TalepControllerTest {
         when(talepServisi.detay(eq(999L), anyString()))
                 .thenThrow(new KayitBulunamadiException("Talep", 999L));
 
-        mockMvc.perform(get("/api/talepler/999").principal(SahteKimlik.olarak("ayse", Rol.PERSONEL)))
+        mockMvc.perform(get("/api/v1/talepler/999").principal(SahteKimlik.olarak("ayse", Rol.PERSONEL)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.kod").value("KAYIT_BULUNAMADI"));
     }
@@ -167,7 +167,7 @@ class TalepControllerTest {
         when(talepServisi.detay(anyLong(), anyString()))
                 .thenThrow(new YetkisizIslemException("Bu talebi goruntuleme yetkiniz yok"));
 
-        mockMvc.perform(get("/api/talepler/5").principal(SahteKimlik.olarak("ayse", Rol.PERSONEL)))
+        mockMvc.perform(get("/api/v1/talepler/5").principal(SahteKimlik.olarak("ayse", Rol.PERSONEL)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.kod").value("YETKISIZ_ISLEM"));
     }
@@ -178,7 +178,7 @@ class TalepControllerTest {
         when(talepServisi.karar(anyLong(), any(OnayKarariKomutu.class), anyString()))
                 .thenThrow(new GecersizDurumGecisiException(TalepDurumu.TASLAK, TalepDurumu.ONAYLANDI));
 
-        mockMvc.perform(post("/api/talepler/1/karar")
+        mockMvc.perform(post("/api/v1/talepler/1/karar")
                         .principal(SahteKimlik.olarak("veli", Rol.AMIR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -194,7 +194,7 @@ class TalepControllerTest {
         when(talepServisi.karar(anyLong(), any(OnayKarariKomutu.class), anyString()))
                 .thenThrow(new GecersizIslemException("Ret islemi icin gerekce yazmak zorunlu"));
 
-        mockMvc.perform(post("/api/talepler/1/karar")
+        mockMvc.perform(post("/api/v1/talepler/1/karar")
                         .principal(SahteKimlik.olarak("veli", Rol.AMIR))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -207,7 +207,7 @@ class TalepControllerTest {
     @Test
     @DisplayName("Id yerine metin gelirse 400 doner")
     void gecersizPathParametresi400() throws Exception {
-        mockMvc.perform(get("/api/talepler/abc").principal(SahteKimlik.olarak("ayse", Rol.PERSONEL)))
+        mockMvc.perform(get("/api/v1/talepler/abc").principal(SahteKimlik.olarak("ayse", Rol.PERSONEL)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.kod").value("GECERSIZ_PARAMETRE"));
     }
@@ -220,7 +220,7 @@ class TalepControllerTest {
         when(talepServisi.listele(any(), any(), anyString()))
                 .thenReturn(new PageImpl<>(icerik, PageRequest.of(0, 20), 1));
 
-        mockMvc.perform(get("/api/talepler?durum=BEKLEMEDE")
+        mockMvc.perform(get("/api/v1/talepler?durum=BEKLEMEDE")
                         .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.icerik.length()").value(1))
@@ -236,7 +236,7 @@ class TalepControllerTest {
     void guncelleme200() throws Exception {
         when(talepServisi.guncelle(anyLong(), any(), anyString())).thenReturn(ORNEK_DETAY);
 
-        mockMvc.perform(put("/api/talepler/7")
+        mockMvc.perform(put("/api/v1/talepler/7")
                         .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -251,7 +251,7 @@ class TalepControllerTest {
     void onayaGonderme200() throws Exception {
         when(talepServisi.onayaGonder(eq(7L), anyString())).thenReturn(ORNEK_DETAY);
 
-        mockMvc.perform(post("/api/talepler/7/onaya-gonder")
+        mockMvc.perform(post("/api/v1/talepler/7/onaya-gonder")
                         .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL)))
                 .andExpect(status().isOk());
     }

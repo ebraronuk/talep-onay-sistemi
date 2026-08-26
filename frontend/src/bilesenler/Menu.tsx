@@ -21,7 +21,11 @@ export function Menu() {
   if (!kullanici) return null;
 
   return (
-    <header className="menu">
+    <>
+      <a className="icerige-atla" href="#ana-icerik">
+        İçeriğe atla
+      </a>
+      <header className="menu">
       <div className="menu-sol">
         <span className="marka">Talep ve Onay Sistemi</span>
         <nav>
@@ -29,7 +33,16 @@ export function Menu() {
           {rolVarMi('PERSONEL') && <NavLink to="/talepler/yeni">Yeni talep</NavLink>}
           {rolVarMi('YONETICI') && <NavLink to="/rapor">Rapor</NavLink>}
           <NavLink to="/bildirimler">
-            Bildirimler{okunmamis > 0 && <span className="rozet-sayi">{okunmamis}</span>}
+            Bildirimler
+            {okunmamis > 0 && (
+              <>
+                <span className="rozet-sayi" aria-hidden="true">
+                  {okunmamis}
+                </span>
+                {/* Rozetteki cikplak sayi ekran okuyucuda anlamsiz duyuluyor */}
+                <span className="gorsel-gizli">{okunmamis} okunmamış bildirim</span>
+              </>
+            )}
           </NavLink>
         </nav>
       </div>
@@ -51,6 +64,7 @@ export function Menu() {
           Çıkış
         </button>
       </div>
-    </header>
+      </header>
+    </>
   );
 }

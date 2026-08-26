@@ -43,7 +43,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
  * kaydin sahibi kim sorusuna serviste bakiliyor.
  */
 @RestController
-@RequestMapping("/api/talepler")
+@RequestMapping("/api/v1/talepler")
 @Tag(name = "Talepler", description = "Talep olusturma, listeleme ve onay akisi")
 public class TalepController {
 
@@ -62,7 +62,7 @@ public class TalepController {
                                                  UriComponentsBuilder uriKurucu) {
         TalepDetayDto olusan = talepServisi.olustur(komut, kimlik.getName());
 
-        URI konum = uriKurucu.path("/api/talepler/{id}").buildAndExpand(olusan.id()).toUri();
+        URI konum = uriKurucu.path("/api/v1/talepler/{id}").buildAndExpand(olusan.id()).toUri();
         return ResponseEntity.created(konum).body(olusan);
     }
 

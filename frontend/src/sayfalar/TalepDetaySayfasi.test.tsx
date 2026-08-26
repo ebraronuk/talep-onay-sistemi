@@ -57,7 +57,7 @@ describe('Talep detayi ve onay akisi', () => {
     await waitFor(() => expect(sahte).toHaveBeenCalledTimes(3));
 
     const [yol, ayarlar] = sahte.mock.calls[1];
-    expect(yol).toBe('/api/talepler/5/karar');
+    expect(yol).toBe('/api/v1/talepler/5/karar');
     expect(JSON.parse(ayarlar.body)).toEqual({ karar: 'ONAYLA', aciklama: 'Uygundur' });
 
     expect(await screen.findByText('Onaylandı')).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe('Talep detayi ve onay akisi', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Onaya gönder' }));
 
     await waitFor(() => expect(sahte).toHaveBeenCalledTimes(3));
-    expect(sahte.mock.calls[1][0]).toBe('/api/talepler/5/onaya-gonder');
+    expect(sahte.mock.calls[1][0]).toBe('/api/v1/talepler/5/onaya-gonder');
   });
 
   it('onay gecmisi kronolojik listeleniyor', async () => {

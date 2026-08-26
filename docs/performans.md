@@ -181,7 +181,7 @@ Kabul kriteri servis katmanı için %70 idi, %96,5 ile sağlandı.
 Es zamanli : 50
 Istek      : 1000 (+ 100 isinma)
 
-### Okuma: GET /api/talepler (sayfali liste, 20 kayit)
+### Okuma: GET /api/v1/talepler (sayfali liste, 20 kayit)
 basarili istek : 1000
 saniyede istek : 1505
 p50            : 29.9 ms
@@ -189,7 +189,7 @@ p95            : 64.2 ms
 p99            : 93.9 ms
 en kotu        : 143.3 ms
 
-### Yazma: POST /api/talepler
+### Yazma: POST /api/v1/talepler
 basarili istek : 300
 saniyede istek : 1237
 p50            : 32.2 ms
@@ -220,3 +220,49 @@ en kotu        : 117.1 ms
 **Anlattığı:** Uygulama katmanında bariz bir darboğaz yok. 50 eşzamanlı istek altında ne bağlantı havuzu tükeniyor ne de kuyruk oluşuyor.
 
 **Anlatmadığı:** Bu bir tek makine ölçümü. Gerçek bir üretim ortamında ağ gecikmesi, ayrı bir veritabanı sunucusu, TLS sonlandırma ve yük dengeleyici devrede olur. Bu sayılar tavan değil, taban: gerçek ortamda daha yüksek çıkar.
+
+---
+
+## 6. Mutasyon testi: testler gerçekten bir şey iddia ediyor mu
+
+Satır kapsamı "bu satır çalıştı" der, "bu satır **doğru** çalıştı" demez. Bir metodun içini silseniz bile testler yeşil kalabilir. Mutasyon testi bunu ölçer: kodu kasıtlı bozar (koşulu ters çevirir, dönüş değerini null yapar, metot çağrısını siler) ve testlerin fark edip etmediğine bakar.
+
+```bash
+./mvnw -Pmutasyon test
+```
+
+Ayrı profilde çünkü test paketini onlarca kez çalıştırıyor; her derlemede koşturmak dakikalar ekler.
+
+### İlk çalıştırma: %43,2
+
+İlk sonuç dürüst bir tokat oldu. En önemli bulgu:
+
+```
+TalepServisi.guncelle:92  removed call to Talep::setAciklama  -> HAYATTA KALDI
+```
+
+Yani `guncelle` metodundan açıklama güncellemesini tamamen silseniz hiçbir test kırılmıyordu. Test yalnızca başlık ve türü doğruluyordu. "Güncelleme çalışıyor" iddiası aslında üç alanın ikisi için kanıtlanmıştı.
+
+İkinci bulgu: `equals` ve `hashCode` metotlarının içini bozmak hiçbir testi kırmıyordu. JPA varlıklarında bu metotlar göründüğünden kritik; yanlış yazıldığında belirti derleme hatası değil, koleksiyonlarda sessizce kaybolan kayıt oluyor.
+
+### Alınan aksiyon
+
+1. `guncelle` testine açıklama doğrulaması eklendi.
+2. `VarlikKimlikTest` yazıldı: beş varlığın tamamı için kimlik sözleşmesi (aynı id eşit, id'siz iki varlık eşit değil, `hashCode` id atandıktan sonra değişmiyor, aynı satır `Set`'te tek kayıt).
+
+### İkinci çalıştırma: %75,2
+
+| Sınıf | Öldürülen / Toplam | Oran |
+|---|---|---|
+| `TalepDurumu` | 5/5 | **%100** |
+| `TalepServisi` | 27/29 | **%93** |
+| `Talep` | 23/25 | **%92** |
+| `Birim` | 9/11 | %82 |
+| `Kullanici` | 11/17 | %65 |
+| `OnayKaydi` | 9/14 | %64 |
+| `Bildirim` | 7/14 | %50 |
+| **Toplam** | **91/121** | **%75,2** |
+
+İş mantığını taşıyan üç sınıf %92 ve üzerinde. Hayatta kalan mutasyonların büyük kısmı basit getter'larda (`getAdSoyad` dönüşünü boş metne çevirmek gibi); bunlar için test yazmak skoru süsler ama hiçbir şey kanıtlamaz. Bilerek bırakıldı.
+
+**Neden bu ölçüm değerli:** %90 satır kapsamı ile %43 mutasyon skorunun aynı anda olabilmesi, kapsam sayısının tek başına ne kadar yanıltıcı olduğunu gösteriyor.

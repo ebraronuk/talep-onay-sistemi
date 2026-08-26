@@ -1,0 +1,51 @@
+# Uretim profili: yalnizca farklari iceriyor, gerisi application.yml'den geliyor.
+#
+# Aktiflestirme: SPRING_PROFILES_ACTIVE=prod
+#
+# Bu dosyanin varlik sebebi, gelistirme kolayliklarinin uretime sizmasini
+# engellemek. Tek profille calisan projelerde bu kolayliklar (acik Swagger,
+# varsayilan gizli anahtar, ayrintili hata mesaji) er ya da gec uretime gidiyor.
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        # SQL bicimlendirme yalnizca insan okumasi icin; uretimde CPU harcar.
+        format_sql: false
+  flyway:
+    # Uretimde semayi temizleme komutu kazara calistirilamasin.
+    clean-disabled: true
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+springdoc:
+  # API dokumani ve deneme arayuzu uretimde kapali: uc listesi ve sema
+  # bilgisi disariya verilmemeli.
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Yalnizca saglik ve olcum. env, beans, configprops gibi uclar
+        # yapilandirma ve gizli deger sizdirabiliyor.
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never
+  info:
+    env:
+      enabled: false
+
+logging:
+  level:
+    root: WARN
+    tr.ebrar.talep: INFO
+    org.hibernate.SQL: WARN

@@ -20,7 +20,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/api/bildirimler")
+@RequestMapping("/api/v1/bildirimler")
 @Tag(name = "Bildirimler", description = "Uygulama ici bildirimler")
 public class BildirimController {
 

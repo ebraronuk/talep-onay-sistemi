@@ -24,7 +24,7 @@ public class OpenApiYapilandirmasi {
                                 Personel talep acar, birim amiri onaylar veya reddeder, her degisiklik
                                 denetim izine yazilir.
 
-                                Kullanim: once POST /api/kimlik/giris ile token alin, sonra sag ustteki
+                                Kullanim: once POST /api/v1/kimlik/giris ile token alin, sonra sag ustteki
                                 Authorize dugmesine tokeni yapistirin.
                                 """))
                 // Authorize dugmesi olmadan Swagger uzerinden hicbir ucu deneyemezsiniz,

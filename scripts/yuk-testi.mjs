@@ -25,7 +25,7 @@ function bayrak(ad) {
 }
 
 async function girisYap(kullaniciAdi, sifre = 'Parola123!') {
-  const yanit = await fetch(`${ayar.taban}/api/kimlik/giris`, {
+  const yanit = await fetch(`${ayar.taban}/api/v1/kimlik/giris`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ kullaniciAdi, sifre }),
@@ -105,7 +105,7 @@ function yazdir(sonuc) {
 const personelToken = await girisYap('ayse.yilmaz');
 const yoneticiToken = await girisYap('hakan.ozturk');
 
-const kayitSayisi = await fetch(`${ayar.taban}/api/raporlar/ozet`, {
+const kayitSayisi = await fetch(`${ayar.taban}/api/v1/raporlar/ozet`, {
   headers: { Authorization: `Bearer ${yoneticiToken}` },
 })
   .then((y) => y.json())
@@ -120,7 +120,7 @@ console.log(`Istek      : ${ayar.istek} (+ ${ayar.isinma} isinma)`);
 await kosu(
   'isinma',
   () =>
-    fetch(`${ayar.taban}/api/talepler?page=0&size=20`, {
+    fetch(`${ayar.taban}/api/v1/talepler?page=0&size=20`, {
       headers: { Authorization: `Bearer ${yoneticiToken}` },
     }),
   ayar.isinma,
@@ -128,9 +128,9 @@ await kosu(
 );
 
 const okuma = await kosu(
-  'Okuma: GET /api/talepler (sayfali liste, 20 kayit)',
+  'Okuma: GET /api/v1/talepler (sayfali liste, 20 kayit)',
   (sira) =>
-    fetch(`${ayar.taban}/api/talepler?page=${sira % 5}&size=20`, {
+    fetch(`${ayar.taban}/api/v1/talepler?page=${sira % 5}&size=20`, {
       headers: { Authorization: `Bearer ${yoneticiToken}` },
     }),
   ayar.istek,
@@ -139,9 +139,9 @@ const okuma = await kosu(
 yazdir(okuma);
 
 const yazma = await kosu(
-  'Yazma: POST /api/talepler',
+  'Yazma: POST /api/v1/talepler',
   (sira) =>
-    fetch(`${ayar.taban}/api/talepler`, {
+    fetch(`${ayar.taban}/api/v1/talepler`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${personelToken}` },
       body: JSON.stringify({

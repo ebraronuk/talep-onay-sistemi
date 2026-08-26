@@ -19,7 +19,7 @@ describe('Talep olusturma akisi', () => {
     await waitFor(() => expect(sahte).toHaveBeenCalled());
 
     const [yol, ayarlar] = sahte.mock.calls[0];
-    expect(yol).toBe('/api/talepler');
+    expect(yol).toBe('/api/v1/talepler');
     expect(ayarlar.method).toBe('POST');
     expect(ayarlar.headers.Authorization).toBe('Bearer test-token');
     expect(JSON.parse(ayarlar.body)).toEqual({

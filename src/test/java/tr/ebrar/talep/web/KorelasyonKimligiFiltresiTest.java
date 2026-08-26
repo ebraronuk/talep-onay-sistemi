@@ -53,7 +53,7 @@ class KorelasyonKimligiFiltresiTest extends VeritabaniTestTemeli {
     @Test
     @DisplayName("Kimliksiz erisimde de kimlik uretiliyor: hata loglari da izlenebilir")
     void yetkisizIstekteDeKimlikVar() throws Exception {
-        mockMvc.perform(get("/api/talepler"))
+        mockMvc.perform(get("/api/v1/talepler"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().exists(KorelasyonKimligiFiltresi.BASLIK));
     }

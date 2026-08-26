@@ -2,6 +2,10 @@ spring:
   application:
     name: talep-onay
 
+  lifecycle:
+    # Zarif kapanmada devam eden isteklere taninan sure.
+    timeout-per-shutdown-phase: 20s
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/talep_onay}
     username: ${DB_USERNAME:talep}
@@ -9,6 +13,14 @@ spring:
     hikari:
       maximum-pool-size: 10
       pool-name: talep-onay-havuz
+      # Varsayilanlar cok comert. Veritabani yanit vermedigi anda istekler
+      # havuzda birikip uygulamayi kilitliyor; asagidaki sinirlar sistemin
+      # yavaslamak yerine hizlica hata donmesini sagliyor.
+      connection-timeout: 3000
+      validation-timeout: 2000
+      idle-timeout: 300000
+      max-lifetime: 900000
+      leak-detection-threshold: 20000
 
   jpa:
     open-in-view: false
@@ -19,8 +31,12 @@ spring:
         format_sql: true
         jdbc:
           batch_size: 50
+          # Kacan bir sorgu tum havuzu tutmasin: 10 saniyede kesilir.
+          time_zone: UTC
         order_inserts: true
         order_updates: true
+        query:
+          timeout: 10000
 
   flyway:
     enabled: true
@@ -35,6 +51,10 @@ server:
   error:
     include-message: never
     include-stacktrace: never
+  # Zarif kapanma: kapanma sinyali gelince yeni istek alinmiyor ama devam
+  # edenler bitirilmeye calisiliyor. Olmadan, dagitim sirasinda islenmekte olan
+  # istekler yarida kesilir ve kullanici sebepsiz hata gorur.
+  shutdown: graceful
 
 management:
   endpoints:

@@ -17,6 +17,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import tr.ebrar.talep.destek.VeriUretici;
+import tr.ebrar.talep.destek.VeritabaniTemizleyici;
 import tr.ebrar.talep.destek.VeritabaniTestTemeli;
 import tr.ebrar.talep.domain.Birim;
 import tr.ebrar.talep.domain.Kullanici;
@@ -62,6 +63,9 @@ class TalepServisiTransactionTest extends VeritabaniTestTemeli {
     @Autowired
     private BildirimRepository bildirimRepository;
 
+    @Autowired
+    private VeritabaniTemizleyici veritabaniTemizleyici;
+
     private Long talepId;
 
     @BeforeEach
@@ -82,11 +86,7 @@ class TalepServisiTransactionTest extends VeritabaniTestTemeli {
 
     @AfterEach
     void temizle() {
-        bildirimRepository.deleteAllInBatch();
-        onayKaydiRepository.deleteAllInBatch();
-        talepRepository.deleteAllInBatch();
-        kullaniciRepository.deleteAllInBatch();
-        birimRepository.deleteAllInBatch();
+        veritabaniTemizleyici.hepsiniTemizle();
     }
 
     @Test

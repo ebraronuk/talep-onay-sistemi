@@ -18,7 +18,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/api/kimlik")
+@RequestMapping("/api/v1/kimlik")
 @Tag(name = "Kimlik", description = "Giris ve aktif kullanici bilgisi")
 public class KimlikController {
 

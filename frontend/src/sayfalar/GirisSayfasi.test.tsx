@@ -30,7 +30,7 @@ describe('Giris akisi', () => {
     await waitFor(() => expect(sessionStorage.getItem('talep-onay-token')).toBe('jwt-token'));
 
     const [yol, ayarlar] = sahte.mock.calls[0];
-    expect(yol).toBe('/api/kimlik/giris');
+    expect(yol).toBe('/api/v1/kimlik/giris');
     expect(JSON.parse(ayarlar.body)).toEqual({ kullaniciAdi: 'ayse.yilmaz', sifre: 'Parola123!' });
   });
 

@@ -24,18 +24,18 @@ Aşağıdaki tablo `RequestMappingHandlerMapping` üzerinden okunan gerçek uç 
 
 | Metot | Uç | Kimlik | Rol kuralı | Kayıt bazlı kural |
 |---|---|---|---|---|
-| POST | `/api/kimlik/giris` | **Gerekmez** | - | - |
-| GET | `/api/kimlik/ben` | Gerekir | Tüm roller | Sadece kendi bilgisi |
-| POST | `/api/talepler` | Gerekir | `PERSONEL` | - |
-| GET | `/api/talepler` | Gerekir | Tüm roller | Kapsam role göre daralır (aşağıya bakın) |
-| GET | `/api/talepler/{id}` | Gerekir | Tüm roller | `PERSONEL`: sahibi olmalı · `AMIR`: kendi birimi · `YONETICI`: hepsi |
-| PUT | `/api/talepler/{id}` | Gerekir | `PERSONEL` | Sahibi olmalı **ve** talep `TASLAK` durumunda olmalı |
-| POST | `/api/talepler/{id}/onaya-gonder` | Gerekir | `PERSONEL` | Sahibi olmalı |
-| POST | `/api/talepler/{id}/karar` | Gerekir | `AMIR` | Aynı birim olmalı **ve** kendi talebi olmamalı |
-| GET | `/api/raporlar/ozet` | Gerekir | `YONETICI` | - |
-| GET | `/api/bildirimler` | Gerekir | Tüm roller | Sadece kendi bildirimleri |
-| GET | `/api/bildirimler/okunmamis-sayisi` | Gerekir | Tüm roller | Sadece kendi |
-| POST | `/api/bildirimler/{id}/okundu` | Gerekir | Tüm roller | Bildirimin alıcısı olmalı |
+| POST | `/api/v1/kimlik/giris` | **Gerekmez** | - | - |
+| GET | `/api/v1/kimlik/ben` | Gerekir | Tüm roller | Sadece kendi bilgisi |
+| POST | `/api/v1/talepler` | Gerekir | `PERSONEL` | - |
+| GET | `/api/v1/talepler` | Gerekir | Tüm roller | Kapsam role göre daralır (aşağıya bakın) |
+| GET | `/api/v1/talepler/{id}` | Gerekir | Tüm roller | `PERSONEL`: sahibi olmalı · `AMIR`: kendi birimi · `YONETICI`: hepsi |
+| PUT | `/api/v1/talepler/{id}` | Gerekir | `PERSONEL` | Sahibi olmalı **ve** talep `TASLAK` durumunda olmalı |
+| POST | `/api/v1/talepler/{id}/onaya-gonder` | Gerekir | `PERSONEL` | Sahibi olmalı |
+| POST | `/api/v1/talepler/{id}/karar` | Gerekir | `AMIR` | Aynı birim olmalı **ve** kendi talebi olmamalı |
+| GET | `/api/v1/raporlar/ozet` | Gerekir | `YONETICI` | - |
+| GET | `/api/v1/bildirimler` | Gerekir | Tüm roller | Sadece kendi bildirimleri |
+| GET | `/api/v1/bildirimler/okunmamis-sayisi` | Gerekir | Tüm roller | Sadece kendi |
+| POST | `/api/v1/bildirimler/{id}/okundu` | Gerekir | Tüm roller | Bildirimin alıcısı olmalı |
 | GET | `/actuator/health`, `/actuator/info` | **Gerekmez** | - | Konteyner sağlık kontrolü için açık |
 | GET | `/actuator/**` (diğerleri) | Gerekir | `YONETICI` | - |
 | GET | `/v3/api-docs/**`, `/swagger-ui/**` | **Gerekmez** | - | Geliştirme kolaylığı; üretimde kapatılabilir |
@@ -110,3 +110,52 @@ Bu proje bir mülakat/portföy projesi; gerçek bir kuruma konulacaksa şunlar y
 3. CORS listesi gerçek alan adıyla değiştirilmeli; ters vekil arkasında aynı kaynak kullanılıyorsa liste boşaltılmalı.
 4. HTTPS zorunlu hale getirilmeli (uygulama önündeki katmanda).
 5. Başarısız giriş denemeleri için hız sınırlama (rate limiting) eklenmeli. Şu an yok ve bu bilinçli bir eksiklik: kapsam dışı bırakıldı.
+
+---
+
+## 7. Kaba kuvvet koruması
+
+Denetimde çıkan bir açığın karşılığı: giriş ucunda hiçbir sınır yoktu, saniyede yüzlerce şifre denemesi yapmak mümkündü.
+
+| Ayar | Değer |
+|---|---|
+| İzin verilen ardışık başarısız deneme | 5 |
+| Kilit süresi | 15 dakika |
+| Sayaç anahtarı | Kullanıcı adı (büyük/küçük harf duyarsız) |
+| Sayaç sıfırlanması | Başarılı girişte |
+
+Sayaç kontrolü şifre doğrulamasından **önce** yapılıyor: limiti aşmış bir kullanıcı için BCrypt hiç çalıştırılmıyor. Bu önemli, çünkü BCrypt kasıtlı olarak pahalı (her deneme yaklaşık 100 ms bir CPU çekirdeği). Sınır olmadan bu, ucuz bir hizmet dışı bırakma (DoS) yolu oluyordu.
+
+**Neden IP değil kullanıcı adı bazlı:** kurumsal ağlarda yüzlerce kullanıcı tek bir NAT adresinin arkasından çıkar; IP bazlı sayım tüm kurumu birlikte kilitler. Karşılığı, saldırganın farklı kullanıcı adlarıyla denemeye devam edebilmesi; onu yavaşlatan şey BCrypt'in maliyeti.
+
+**Bilinen sınır:** sayaç bu uygulama örneğine ait, bellekte tutuluyor. Uygulama birden fazla kopya halinde çalıştırılırsa saldırgan kopyalar arasında gezinerek limiti kopya sayısıyla çarpar. Doğru çözüm yük dengeleyici veya API gateway seviyesinde hız sınırlama, ya da paylaşımlı bir sayaç (Redis). Tek konteynerli bu dağıtım için mevcut çözüm yeterli ve "hiç yok"tan çok daha iyi.
+
+Testler: `GuvenlikEntegrasyonTest.KabaKuvvet` (3 test).
+
+---
+
+## 8. Denetim izi veritabanı seviyesinde kilitli
+
+Bir başka denetim bulgusu: "onay kaydı silinemez ve değiştirilemez" iddiası yalnızca Java tarafında doğruydu (`OnayKaydi` sınıfında setter yok). Veritabanına bağlanan herhangi biri satırı güncelleyip silebiliyordu.
+
+`V5__denetim_izi_degistirilemez.sql` ile `onay_kaydi` tablosuna `UPDATE` ve `DELETE`'i reddeden trigger eklendi. Ekleme serbest, değişiklik yasak.
+
+**Neden trigger, kolon seviyesinde `GRANT` değil:** `GRANT` rol bazlı çalışır ve uygulama rolünün değişmesiyle sessizce devre dışı kalabilir. Trigger, hangi rolle bağlanıldığından bağımsız çalışır.
+
+Testler: `DenetimIziKorumasiTest` (3 test). Testler JPA'yı baypas edip doğrudan SQL çalıştırıyor; korumanın uygulamada değil veritabanında olduğunu göstermenin tek yolu bu.
+
+---
+
+## 9. Üretim profili
+
+`SPRING_PROFILES_ACTIVE=prod` ile açıldığında:
+
+| Ayar | Değişiklik | Neden |
+|---|---|---|
+| Swagger ve `/v3/api-docs` | Kapalı | Uç listesi ve şema dışarıya verilmemeli |
+| Actuator uçları | Yalnızca `health` ve `metrics` | `env` ve `configprops` gizli değer sızdırabilir |
+| Sağlık detayı | Gizli | Bileşen adları ve bağlantı bilgisi sızmasın |
+| Flyway `clean` | Devre dışı | Şema temizleme komutu kazara çalıştırılamasın |
+| Log seviyesi | `root: WARN` | Gürültü azalır, gerçek hata görünür |
+
+Ek olarak `UretimYapilandirmaDenetimi` açılışta çalışıyor: depodaki varsayılan JWT anahtarıyla üretim profilinde başlatılmaya çalışılırsa uygulama **hata verip durur**. Uyarı değil hata, çünkü uyarı log'da kaybolur; yanlış yapılandırmayla ayakta duran bir sistem, ayakta olmayan sistemden kötüdür.

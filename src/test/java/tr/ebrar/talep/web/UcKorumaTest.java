@@ -36,7 +36,7 @@ class UcKorumaTest extends VeritabaniTestTemeli {
 
     /** Kimlik dogrulamasi olmadan erisilebilen uclar. Buraya ekleme yaparken dikkat. */
     private static final Set<String> KASITLI_ACIK_UCLAR = Set.of(
-            "POST /api/kimlik/giris"
+            "POST /api/v1/kimlik/giris"
     );
 
     @Autowired

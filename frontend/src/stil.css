@@ -600,3 +600,167 @@ code {
 .islem-kutusu button {
   margin-top: 0.75rem;
 }
+
+/* --- erisilebilirlik --- */
+
+/*
+  Klavyeyle gezinenler icin icerige atlama baglantisi. Gorunmez duruyor,
+  Tab'a basildiginda ortaya cikiyor. Menude alti baglanti var; ekran okuyucu
+  kullanan biri her sayfada bunlari tekrar dinlemek zorunda kalmasin.
+*/
+.icerige-atla {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  background: #fff;
+  color: var(--lacivert);
+  border: 2px solid var(--lacivert);
+  border-radius: 0 0 var(--yuvarlak) 0;
+}
+
+.icerige-atla:focus {
+  left: 0;
+}
+
+/* Odak halkasi her yerde gorunur olmali; tarayici varsayilanini gizlemiyoruz. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--mavi);
+  outline-offset: 2px;
+}
+
+.menu a:focus-visible,
+.menu button:focus-visible {
+  outline-color: #fff;
+}
+
+/* Yalnizca ekran okuyucular icin metin. */
+.gorsel-gizli {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Hareket azaltma tercihini isaretleyenlerde gecisleri kapat. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --- mobil --- */
+
+@media (max-width: 768px) {
+  .menu {
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .menu-sol {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .menu nav {
+    flex-wrap: wrap;
+    gap: 0.9rem;
+  }
+
+  .menu-sag {
+    justify-content: space-between;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    padding-top: 0.5rem;
+  }
+
+  .kullanici-bilgi {
+    text-align: left;
+  }
+
+  .icerik {
+    margin: 1rem auto;
+    padding: 0 1rem;
+  }
+
+  .sayfa-basligi {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /*
+    Tablo mobilde tasiyordu. Her satiri karta cevirip hucre basliklarini
+    data-etiket ozniteliginden yaziyoruz; yatay kaydirma yerine okunabilir
+    bir yigin cikiyor.
+  */
+  .tablo thead {
+    display: none;
+  }
+
+  .tablo,
+  .tablo tbody,
+  .tablo tr,
+  .tablo td {
+    display: block;
+    width: 100%;
+  }
+
+  .tablo tr {
+    border-bottom: 1px solid var(--cizgi);
+    padding: 0.5rem 0;
+  }
+
+  .tablo td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    border: none;
+    padding: 0.3rem 0.85rem;
+  }
+
+  .tablo td::before {
+    content: attr(data-etiket);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--metin-soluk);
+    flex-shrink: 0;
+  }
+
+  .gecmis li {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .cubuk-grafik li {
+    grid-template-columns: 90px 1fr 32px;
+  }
+
+  .bildirim-listesi li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dugme-grubu {
+    flex-direction: column;
+  }
+
+  .dugme-grubu button {
+    width: 100%;
+  }
+}

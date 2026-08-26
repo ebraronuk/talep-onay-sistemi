@@ -182,3 +182,69 @@ Aşağıdakiler bilinçli olarak kapsam dışıdır. "İleride lazım olur" gere
 2. Her test sınıfı kendi benzersiz birim kodlarını kullanır (`RPO-BT`, `GVN-BT`, `TRX`, `BLD`).
 
 Sıranın sabitlenmesi asıl çözüm değil, hatayı tekrar üretilebilir yapan destek önlemi. Doğrulama: `./mvnw test -Dsurefire.runOrder=reversealphabetical` de yeşil.
+
+---
+
+## K-014: Denetim izi veritabanı trigger'ı ile korunur
+
+**Karar.** `onay_kaydi` tablosuna `UPDATE` ve `DELETE`'i reddeden bir PostgreSQL trigger'ı eklendi.
+
+**Gerekçe.** Denetim izinin tüm değeri değiştirilemez olmasından geliyor. Koruma yalnızca `OnayKaydi` sınıfında setter olmamasıyla sağlanıyordu; yani iddia kod için doğru, sistem için yanlıştı. Veritabanına bağlanan başka bir uygulama, elle açılan bir `psql` oturumu ya da ileride yazılacak bir toplu iş geçmişi değiştirebilirdi.
+
+**Reddedilen alternatif.** Uygulama rolünden `UPDATE`/`DELETE` yetkisini `REVOKE` etmek. Reddedildi çünkü rol bazlı yetki, uygulama rolü değiştiğinde sessizce devre dışı kalır ve bu değişiklik kimsenin dikkatini çekmez. Trigger, hangi rolle bağlanıldığından bağımsız çalışır.
+
+**Yan etkisi.** Testlerin temizlik için attığı `DELETE` de artık trigger'a takılıyor. Test temizliği `TRUNCATE`'e çevrildi; `TRUNCATE` satır seviyesindeki trigger'ları tetiklemiyor ve zaten daha hızlı.
+
+---
+
+## K-015: İyimser kilitleme (`@Version`), kötümser kilit değil
+
+**Karar.** `Talep` varlığına `@Version` kolonu eklendi.
+
+**Gerekçe.** İki amirin aynı talebe aynı anda karar vermesi mümkün: ikisi de `BEKLEMEDE` görüyor, biri onaylıyor, diğeri reddediyor. Bu kolon olmadan ikinci yazım birincinin üzerine sessizce geçiyor ve denetim izinde iki çelişkili kayıt kalıyordu.
+
+**Reddedilen alternatif.** Kötümser kilit (`SELECT ... FOR UPDATE`). Reddedildi çünkü çakışma nadir bir olay, kilit tutmanın maliyeti ise her istekte ödeniyor. Ayrıca kilit tutan bir istemcinin ölmesi diğerlerini bekletir.
+
+**Kullanıcıya yansıması.** İkinci işlem 409 `ES_ZAMANLI_DEGISIKLIK` alıyor ve "bu kayıt siz görüntülerken değiştirildi, sayfayı yenileyin" mesajını görüyor. Sessizce üzerine yazmaktan iyi.
+
+---
+
+## K-016: URL tabanlı API sürümleme (`/api/v1`)
+
+**Karar.** Tüm uçlar `/api/v1` öneki altında.
+
+**Gerekçe.** Kırıcı bir değişiklik gerektiğinde eski istemcileri çalışır bırakıp yeni sürümü yanına koyabilmek için. Öneki sonradan eklemek, tüm istemcileri aynı anda güncellemeyi gerektirir ki bu genelde mümkün değildir.
+
+**Reddedilen alternatif.** Başlık tabanlı sürümleme (`Accept: application/vnd.talep.v1+json`). Teknik olarak daha zarif ama tarayıcıdan denemesi zor, önbellek katmanlarıyla sorunlu ve ekipteki herkesin bilmesi gereken bir kural getiriyor. URL'de görünen sürüm herkes için okunabilir.
+
+---
+
+## K-017: Giriş denemesi sınırlaması uygulama içinde, bellekte
+
+**Karar.** Ardışık 5 başarısız denemeden sonra kullanıcı 15 dakika kilitleniyor. Sayaç Caffeine önbelleğinde, uygulama belleğinde.
+
+**Gerekçe.** Sınır olmadan giriş ucu hem kaba kuvvet hem de ucuz bir hizmet dışı bırakma yoluydu (BCrypt her denemede bir çekirdeği ~100 ms meşgul ediyor). Tek konteynerli bu dağıtım için bellekteki sayaç yeterli.
+
+**Reddedilen alternatif.** Redis'te paylaşımlı sayaç. Reddedildi çünkü tek bir özellik için yeni bir çalışma zamanı bileşeni getiriyor.
+
+**Bilinen sınır.** Uygulama birden fazla kopya halinde çalıştırılırsa limit kopya sayısıyla çarpılır. Doğru yer, o senaryoda, yük dengeleyici veya API gateway. Bu sınır `docs/guvenlik.md` içinde açıkça yazılı.
+
+---
+
+## K-018: İş metrikleri Micrometer ile
+
+**Karar.** `talep.olusturuldu`, `talep.durum.degisti` sayaçları ve `talep.karar.suresi` zamanlayıcısı eklendi.
+
+**Gerekçe.** Actuator kutudan JVM ve HTTP metrikleri veriyor; bunlar "sistem ayakta mı" sorusuna cevap veriyor ama "sistem işe yarıyor mu" sorusuna vermiyor. "Dün kaç talep onaylandı, onay ortalama ne kadar sürdü" soruları operasyonun asıl sorduğu sorular.
+
+**Dikkat edilen nokta.** Etiketler yalnızca enum değerleriyle sınırlı. Etiket olarak kullanıcı adı veya talep başlığı konsaydı her yeni değer yeni bir zaman serisi üretirdi; metrik veritabanını şişiren klasik hata bu.
+
+---
+
+## K-019: Mutasyon testi ayrı profilde, kapı olarak değil ölçüm olarak
+
+**Karar.** PIT (pitest) `mutasyon` profiliyle çalışıyor, normal derlemeye dahil değil ve bir eşiği yok.
+
+**Gerekçe.** Mutasyon testi test paketini onlarca kez çalıştırıyor; her derlemede koşturmak dakikalar ekler. Eşik koymamanın sebebi ise skorun anlamlı kısmının sınıf bazında olması: basit getter'lardaki hayatta kalan mutasyonlar için test yazmak skoru süsler, hiçbir şey kanıtlamaz.
+
+**Ne kazandırdı.** İlk çalıştırmada gerçek bir test boşluğu buldu: `TalepServisi.guncelle` metodundan açıklama güncellemesini silmek hiçbir testi kırmıyordu. Detay `docs/performans.md` bölüm 6.

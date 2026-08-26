@@ -21,6 +21,8 @@
     <jjwt.version>0.12.7</jjwt.version>
     <jacoco.version>0.8.15</jacoco.version>
     <archunit.version>1.5.0</archunit.version>
+    <pitest.version>1.25.9</pitest.version>
+    <pitest.junit5.version>1.2.3</pitest.junit5.version>
     <spotless.version>3.10.0</spotless.version>
     <!-- ./mvnw flyway:migrate icin varsayilan yerel baglanti; -Ddb.url=... ile gecilebilir -->
     <db.url>jdbc:postgresql://localhost:5432/talep_onay</db.url>
@@ -92,6 +94,15 @@
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <optional>true</optional>
+    </dependency>
+
+    <!-- Giris denemesi sayaci icin: suresi dolan kayitlari kendisi temizliyor ve
+         boyutu sinirli. Elle yazilan bir Map + zamanlayici ile ayni isi yapmak
+         mumkun ama bellek sizintisi riskini bedava satin almak olurdu.
+         Surumu Spring Boot yonetiyor. -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
     </dependency>
 
     <dependency>
@@ -306,4 +317,72 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <!--
+        Mutasyon testi: ./mvnw -Pmutasyon test
+
+        Neden ayri profil: pitest kodu kasitli olarak bozup testlerin fark edip
+        etmedigine bakiyor, yani test paketini onlarca kez calistiriyor. Her
+        derlemede kosturmak dakikalar ekler; ayda bir bakilacak bir olcum.
+
+        Neden var: satir kapsami "bu satir calisti" der, "bu satir DOGRU calisti"
+        demez. Bir metodun icini silsen bile testler yesil kalabilir. Mutasyon
+        skoru testlerin gercekten bir sey iddia edip etmedigini olcuyor.
+
+        Hedef yalnizca saf birim testleriyle kaplanan siniflar: veritabani ve
+        Spring baglami gerektiren testler mutasyon kosusunda pratik degil.
+      -->
+      <id>mutasyon</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-maven</artifactId>
+            <version>${pitest.version}</version>
+            <configuration>
+              <targetClasses>
+                <param>tr.ebrar.talep.domain.*</param>
+                <param>tr.ebrar.talep.service.TalepServisi</param>
+              </targetClasses>
+              <targetTests>
+                <param>tr.ebrar.talep.domain.TalepDurumuTest</param>
+                <param>tr.ebrar.talep.domain.VarlikKimlikTest</param>
+                <param>tr.ebrar.talep.service.TalepServisiTest</param>
+              </targetTests>
+              <excludedMethods>
+                <!-- toString yalnizca log ve hata ayiklama icin; davranis tasimiyor.
+                     Getter'lar da ayni sekilde: mutasyonlari "test eksik" degil
+                     "test edilecek bir sey yok" anlamina geliyor. -->
+                <param>toString</param>
+              </excludedMethods>
+              <outputFormats>
+                <param>HTML</param>
+                <param>XML</param>
+              </outputFormats>
+              <timestampedReports>false</timestampedReports>
+            </configuration>
+            <dependencies>
+              <dependency>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-junit5-plugin</artifactId>
+                <version>${pitest.junit5.version}</version>
+              </dependency>
+            </dependencies>
+            <executions>
+              <execution>
+                <id>mutasyon-testi</id>
+                <goals>
+                  <goal>mutationCoverage</goal>
+                </goals>
+                <phase>test</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>

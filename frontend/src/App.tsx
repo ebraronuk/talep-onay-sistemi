@@ -14,7 +14,7 @@ export function App() {
     <OturumSaglayici>
       <BrowserRouter>
         <Menu />
-        <main className="icerik">
+        <main className="icerik" id="ana-icerik">
           <Routes>
             <Route path="/giris" element={<GirisSayfasi />} />
 

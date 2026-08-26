@@ -370,6 +370,10 @@ class TalepServisiTest {
                     new TalepGuncelleKomutu("Guncel baslik", "Guncel aciklama", TalepTuru.EGITIM), "ayse");
 
             assertThat(sonuc.baslik()).isEqualTo("Guncel baslik");
+            // aciklama da dogrulaniyor: mutasyon testi bu satirin eksikligini yakaladi.
+            // setAciklama cagrisini silince testler yesil kaliyordu, yani "guncelleme
+            // calisiyor" iddiasi aslinda iki alan icin kanitlanmis, ucuncusu icin degildi.
+            assertThat(sonuc.aciklama()).isEqualTo("Guncel aciklama");
             assertThat(sonuc.tur()).isEqualTo(TalepTuru.EGITIM);
             // save cagrilmiyor: kirli kontrol devrede
             verify(talepRepository, never()).save(any());

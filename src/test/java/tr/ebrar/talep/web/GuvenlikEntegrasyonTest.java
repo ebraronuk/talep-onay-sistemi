@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
 
 import javax.crypto.SecretKey;
 
@@ -25,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import tr.ebrar.talep.destek.VeritabaniTemizleyici;
 import tr.ebrar.talep.destek.VeritabaniTestTemeli;
 import tr.ebrar.talep.domain.Birim;
 import tr.ebrar.talep.domain.Kullanici;
@@ -37,6 +39,7 @@ import tr.ebrar.talep.repository.BirimRepository;
 import tr.ebrar.talep.repository.KullaniciRepository;
 import tr.ebrar.talep.repository.OnayKaydiRepository;
 import tr.ebrar.talep.repository.TalepRepository;
+import tr.ebrar.talep.security.GirisDenemeTakipcisi;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -55,6 +58,9 @@ import io.jsonwebtoken.security.Keys;
 class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
 
     private static final String SIFRE = "Parola123!";
+
+    private static final List<String> TUM_TEST_KULLANICILARI =
+            List.of("g.personel", "g.diger", "g.amir", "g.muhamir", "g.yonetici", "g.muhpersonel");
 
     @Autowired
     private MockMvc mockMvc;
@@ -75,6 +81,12 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
     private BildirimRepository bildirimRepository;
 
     @Autowired
+    private VeritabaniTemizleyici veritabaniTemizleyici;
+
+    @Autowired
+    private GirisDenemeTakipcisi denemeTakipcisi;
+
+    @Autowired
     private PasswordEncoder sifreKodlayici;
 
     @Value("${talep.jwt.gizli-anahtar}")
@@ -93,6 +105,9 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
     @BeforeEach
     void hazirla() throws Exception {
         temizle();
+        // Deneme sayaci tekil bir bean ve testler arasinda paylasiliyor. Onceki bir
+        // test kullaniciyi kilitlemis olabilir; kurulumda sayaclar sifirlaniyor.
+        TUM_TEST_KULLANICILARI.forEach(denemeTakipcisi::basariliGiris);
 
         Birim btgm = birimRepository.save(new Birim("GVN-BT", "Guvenlik testi BT birimi"));
         Birim muhasebe = birimRepository.save(new Birim("GVN-MH", "Guvenlik testi muhasebe birimi"));
@@ -124,11 +139,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
      */
     @AfterEach
     void temizle() {
-        bildirimRepository.deleteAllInBatch();
-        onayKaydiRepository.deleteAllInBatch();
-        talepRepository.deleteAllInBatch();
-        kullaniciRepository.deleteAllInBatch();
-        birimRepository.deleteAllInBatch();
+        veritabaniTemizleyici.hepsiniTemizle();
     }
 
     private Kullanici kaydet(String kullaniciAdi, Rol rol, Birim birim) {
@@ -146,7 +157,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
     }
 
     private String girisYap(String kullaniciAdi) throws Exception {
-        String govde = mockMvc.perform(post("/api/kimlik/giris")
+        String govde = mockMvc.perform(post("/api/v1/kimlik/giris")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"kullaniciAdi": "%s", "sifre": "%s"}
@@ -170,7 +181,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Tokensiz istek 401 ve sozlesmeye uygun hata govdesi doner")
         void tokensiz401() throws Exception {
-            mockMvc.perform(get("/api/talepler"))
+            mockMvc.perform(get("/api/v1/talepler"))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.kod").value("KIMLIK_DOGRULANAMADI"))
                     .andExpect(jsonPath("$.zaman").exists());
@@ -179,14 +190,14 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Imzasi bozuk token 401")
         void bozukToken401() throws Exception {
-            mockMvc.perform(get("/api/talepler").header("Authorization", bearer(personelToken + "bozuk")))
+            mockMvc.perform(get("/api/v1/talepler").header("Authorization", bearer(personelToken + "bozuk")))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
         @DisplayName("Bearer oneksiz baslik 401")
         void oneksizBaslik401() throws Exception {
-            mockMvc.perform(get("/api/talepler").header("Authorization", personelToken))
+            mockMvc.perform(get("/api/v1/talepler").header("Authorization", personelToken))
                     .andExpect(status().isUnauthorized());
         }
 
@@ -204,7 +215,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
                     .signWith(anahtar)
                     .compact();
 
-            mockMvc.perform(get("/api/talepler").header("Authorization", bearer(eskiToken)))
+            mockMvc.perform(get("/api/v1/talepler").header("Authorization", bearer(eskiToken)))
                     .andExpect(status().isUnauthorized());
         }
 
@@ -221,14 +232,14 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
                     .signWith(sahteAnahtar)
                     .compact();
 
-            mockMvc.perform(get("/api/raporlar/ozet").header("Authorization", bearer(sahteToken)))
+            mockMvc.perform(get("/api/v1/raporlar/ozet").header("Authorization", bearer(sahteToken)))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
         @DisplayName("Yanlis sifre 401, kullanici adinin varligi sizmaz")
         void yanlisSifre401() throws Exception {
-            mockMvc.perform(post("/api/kimlik/giris")
+            mockMvc.perform(post("/api/v1/kimlik/giris")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"kullaniciAdi": "g.personel", "sifre": "yanlis"}
@@ -240,7 +251,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Olmayan kullanici da ayni mesaji alir")
         void olmayanKullaniciAyniMesaj() throws Exception {
-            mockMvc.perform(post("/api/kimlik/giris")
+            mockMvc.perform(post("/api/v1/kimlik/giris")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"kullaniciAdi": "boyle.biri.yok", "sifre": "Parola123!"}
@@ -256,7 +267,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
             personel.setAktif(false);
             kullaniciRepository.saveAndFlush(personel);
 
-            mockMvc.perform(post("/api/kimlik/giris")
+            mockMvc.perform(post("/api/v1/kimlik/giris")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"kullaniciAdi": "g.personel", "sifre": "%s"}
@@ -274,7 +285,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("PERSONEL rapor ucuna erisemez")
         void personelRaporGoremez() throws Exception {
-            mockMvc.perform(get("/api/raporlar/ozet").header("Authorization", bearer(personelToken)))
+            mockMvc.perform(get("/api/v1/raporlar/ozet").header("Authorization", bearer(personelToken)))
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.kod").value("YETKISIZ_ISLEM"));
         }
@@ -282,14 +293,14 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("AMIR rapor ucuna erisemez")
         void amirRaporGoremez() throws Exception {
-            mockMvc.perform(get("/api/raporlar/ozet").header("Authorization", bearer(amirToken)))
+            mockMvc.perform(get("/api/v1/raporlar/ozet").header("Authorization", bearer(amirToken)))
                     .andExpect(status().isForbidden());
         }
 
         @Test
         @DisplayName("YONETICI rapor ucunu gorur")
         void yoneticiRaporGorur() throws Exception {
-            mockMvc.perform(get("/api/raporlar/ozet").header("Authorization", bearer(yoneticiToken)))
+            mockMvc.perform(get("/api/v1/raporlar/ozet").header("Authorization", bearer(yoneticiToken)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.toplamTalep").value(3));
         }
@@ -297,7 +308,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("PERSONEL karar veremez")
         void personelKararVeremez() throws Exception {
-            mockMvc.perform(post("/api/talepler/" + personelTalebiId + "/karar")
+            mockMvc.perform(post("/api/v1/talepler/" + personelTalebiId + "/karar")
                             .header("Authorization", bearer(personelToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
@@ -309,7 +320,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("YONETICI karar veremez, sadece izler")
         void yoneticiKararVeremez() throws Exception {
-            mockMvc.perform(post("/api/talepler/" + personelTalebiId + "/karar")
+            mockMvc.perform(post("/api/v1/talepler/" + personelTalebiId + "/karar")
                             .header("Authorization", bearer(yoneticiToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
@@ -321,7 +332,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("AMIR talep olusturamaz")
         void amirTalepOlusturamaz() throws Exception {
-            mockMvc.perform(post("/api/talepler")
+            mockMvc.perform(post("/api/v1/talepler")
                             .header("Authorization", bearer(amirToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
@@ -333,7 +344,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("PERSONEL talep olusturabilir")
         void personelTalepOlusturur() throws Exception {
-            mockMvc.perform(post("/api/talepler")
+            mockMvc.perform(post("/api/v1/talepler")
                             .header("Authorization", bearer(personelToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
@@ -352,7 +363,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Personel baskasinin talebini goremez")
         void personelBaskasininTalebiniGoremez() throws Exception {
-            mockMvc.perform(get("/api/talepler/" + digerPersonelTalebiId)
+            mockMvc.perform(get("/api/v1/talepler/" + digerPersonelTalebiId)
                             .header("Authorization", bearer(personelToken)))
                     .andExpect(status().isForbidden());
         }
@@ -360,7 +371,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Personel kendi talebini gorur")
         void personelKendiTalebiniGorur() throws Exception {
-            mockMvc.perform(get("/api/talepler/" + personelTalebiId)
+            mockMvc.perform(get("/api/v1/talepler/" + personelTalebiId)
                             .header("Authorization", bearer(personelToken)))
                     .andExpect(status().isOk());
         }
@@ -368,7 +379,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Personel listesinde yalnizca kendi talepleri var")
         void personelListesiKendiTalepleri() throws Exception {
-            mockMvc.perform(get("/api/talepler").header("Authorization", bearer(personelToken)))
+            mockMvc.perform(get("/api/v1/talepler").header("Authorization", bearer(personelToken)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.toplamKayit").value(1))
                     .andExpect(jsonPath("$.icerik[0].baslik").value("Personel talebi"));
@@ -379,7 +390,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         void personelBirimFiltresiyleKacamaz() throws Exception {
             // Istemciden gelen birimId personel icin yok sayiliyor. Sayilsaydi
             // burada 3 talep donerdi ve bu bir yetki acigi olurdu.
-            mockMvc.perform(get("/api/talepler?birimId=1").header("Authorization", bearer(personelToken)))
+            mockMvc.perform(get("/api/v1/talepler?birimId=1").header("Authorization", bearer(personelToken)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.toplamKayit").value(1));
         }
@@ -387,7 +398,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Amir baska birimin talebini goremez")
         void amirBaskaBiriminTalebiniGoremez() throws Exception {
-            mockMvc.perform(get("/api/talepler/" + baskaBirimTalebiId)
+            mockMvc.perform(get("/api/v1/talepler/" + baskaBirimTalebiId)
                             .header("Authorization", bearer(amirToken)))
                     .andExpect(status().isForbidden());
         }
@@ -395,7 +406,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Amir baska birimin talebine karar veremez")
         void amirBaskaBiriminTalebineKararVeremez() throws Exception {
-            mockMvc.perform(post("/api/talepler/" + baskaBirimTalebiId + "/karar")
+            mockMvc.perform(post("/api/v1/talepler/" + baskaBirimTalebiId + "/karar")
                             .header("Authorization", bearer(amirToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
@@ -407,7 +418,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Amir kendi birimindeki talebi onaylar")
         void amirKendiBiriminiOnaylar() throws Exception {
-            mockMvc.perform(post("/api/talepler/" + personelTalebiId + "/karar")
+            mockMvc.perform(post("/api/v1/talepler/" + personelTalebiId + "/karar")
                             .header("Authorization", bearer(amirToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
@@ -420,7 +431,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Personel baskasinin talebini onaya gonderemez")
         void baskasininTalebiniOnayaGonderemez() throws Exception {
-            mockMvc.perform(post("/api/talepler/" + digerPersonelTalebiId + "/onaya-gonder")
+            mockMvc.perform(post("/api/v1/talepler/" + digerPersonelTalebiId + "/onaya-gonder")
                             .header("Authorization", bearer(personelToken)))
                     .andExpect(status().isForbidden());
         }
@@ -429,7 +440,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @DisplayName("Personel baskasinin talebini guncelleyemez")
         void baskasininTalebiniGuncelleyemez() throws Exception {
             mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                            .put("/api/talepler/" + digerPersonelTalebiId)
+                            .put("/api/v1/talepler/" + digerPersonelTalebiId)
                             .header("Authorization", bearer(digerPersonelToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
@@ -438,7 +449,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
                     .andExpect(status().isOk());
 
             mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                            .put("/api/talepler/" + digerPersonelTalebiId)
+                            .put("/api/v1/talepler/" + digerPersonelTalebiId)
                             .header("Authorization", bearer(personelToken))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
@@ -450,7 +461,7 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Yonetici tum birimleri gorur")
         void yoneticiHepsiniGorur() throws Exception {
-            mockMvc.perform(get("/api/talepler").header("Authorization", bearer(yoneticiToken)))
+            mockMvc.perform(get("/api/v1/talepler").header("Authorization", bearer(yoneticiToken)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.toplamKayit").value(3));
         }
@@ -458,10 +469,87 @@ class GuvenlikEntegrasyonTest extends VeritabaniTestTemeli {
         @Test
         @DisplayName("Baska birimin amiri o birimin listesini goremez")
         void baskaBirimAmiriListeyiGoremez() throws Exception {
-            mockMvc.perform(get("/api/talepler").header("Authorization", bearer(baskaBirimAmirToken)))
+            mockMvc.perform(get("/api/v1/talepler").header("Authorization", bearer(baskaBirimAmirToken)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.toplamKayit").value(1))
                     .andExpect(jsonPath("$.icerik[0].baslik").value("Muhasebe talebi"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Kaba kuvvet korumasi")
+    class KabaKuvvet {
+
+        @Test
+        @DisplayName("Ard arda basarisiz denemeden sonra dogru sifre bile 429 alir")
+        void limitAsilincaKilitlenir() throws Exception {
+            for (int i = 0; i < 5; i++) {
+                mockMvc.perform(post("/api/v1/kimlik/giris")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"kullaniciAdi": "g.personel", "sifre": "yanlis%d"}
+                                        """.formatted(i)))
+                        .andExpect(status().isUnauthorized());
+            }
+
+            // Alti deneme, bu kez sifre DOGRU. Yine de kabul edilmemeli.
+            mockMvc.perform(post("/api/v1/kimlik/giris")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"kullaniciAdi": "g.personel", "sifre": "%s"}
+                                    """.formatted(SIFRE)))
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(jsonPath("$.kod").value("COK_FAZLA_DENEME"));
+        }
+
+        @Test
+        @DisplayName("Limit kullanici bazinda: bir kullanicinin kilidi digerini etkilemez")
+        void kilitKullaniciBazinda() throws Exception {
+            for (int i = 0; i < 5; i++) {
+                mockMvc.perform(post("/api/v1/kimlik/giris")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"kullaniciAdi": "g.diger", "sifre": "yanlis%d"}
+                                        """.formatted(i)))
+                        .andExpect(status().isUnauthorized());
+            }
+
+            mockMvc.perform(post("/api/v1/kimlik/giris")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"kullaniciAdi": "g.amir", "sifre": "%s"}
+                                    """.formatted(SIFRE)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("Basarili giris sayaci sifirliyor")
+        void basariliGirisSayaciSifirlar() throws Exception {
+            for (int i = 0; i < 4; i++) {
+                mockMvc.perform(post("/api/v1/kimlik/giris")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"kullaniciAdi": "g.yonetici", "sifre": "yanlis%d"}
+                                        """.formatted(i)))
+                        .andExpect(status().isUnauthorized());
+            }
+
+            mockMvc.perform(post("/api/v1/kimlik/giris")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"kullaniciAdi": "g.yonetici", "sifre": "%s"}
+                                    """.formatted(SIFRE)))
+                    .andExpect(status().isOk());
+
+            // Sayac sifirlandigi icin dort yanlis daha kilitlemiyor.
+            for (int i = 0; i < 4; i++) {
+                mockMvc.perform(post("/api/v1/kimlik/giris")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"kullaniciAdi": "g.yonetici", "sifre": "yine-yanlis%d"}
+                                        """.formatted(i)))
+                        .andExpect(status().isUnauthorized());
+            }
         }
     }
 

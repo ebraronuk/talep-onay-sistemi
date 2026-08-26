@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.hata.KayitBulunamadiException;
 import tr.ebrar.talep.repository.KullaniciRepository;
+import tr.ebrar.talep.security.GirisDenemeTakipcisi;
 import tr.ebrar.talep.security.JwtUretici;
 import tr.ebrar.talep.service.dto.GirisYanitiDto;
 import tr.ebrar.talep.service.dto.KullaniciOzetDto;
@@ -25,25 +26,36 @@ public class KimlikServisi {
     private final AuthenticationManager kimlikYoneticisi;
     private final KullaniciRepository kullaniciRepository;
     private final JwtUretici jwtUretici;
+    private final GirisDenemeTakipcisi denemeTakipcisi;
 
     public KimlikServisi(AuthenticationManager kimlikYoneticisi,
                          KullaniciRepository kullaniciRepository,
-                         JwtUretici jwtUretici) {
+                         JwtUretici jwtUretici,
+                         GirisDenemeTakipcisi denemeTakipcisi) {
         this.kimlikYoneticisi = kimlikYoneticisi;
         this.kullaniciRepository = kullaniciRepository;
         this.jwtUretici = jwtUretici;
+        this.denemeTakipcisi = denemeTakipcisi;
     }
 
     public GirisYanitiDto giris(GirisKomutu komut) {
+        // Sifre kontrolunden once: limiti asmis bir kullanici icin BCrypt'i hic
+        // calistirmiyoruz. Kontrolun burada olmasinin sebebi de bu, BCrypt her
+        // deneme icin bilincli olarak pahali.
+        denemeTakipcisi.kontrolEt(komut.kullaniciAdi());
+
         try {
             kimlikYoneticisi.authenticate(
                     new UsernamePasswordAuthenticationToken(komut.kullaniciAdi(), komut.sifre()));
         } catch (AuthenticationException e) {
+            denemeTakipcisi.basarisizDeneme(komut.kullaniciAdi());
             // Basarisiz girisleri iz birakacak sekilde logluyoruz ama sifreyi degil,
             // yalnizca kullanici adini yaziyoruz.
             log.warn("Basarisiz giris denemesi: kullanici={}", komut.kullaniciAdi());
             throw e;
         }
+
+        denemeTakipcisi.basariliGiris(komut.kullaniciAdi());
 
         Kullanici kullanici = kullaniciRepository.findByKullaniciAdi(komut.kullaniciAdi())
                 .orElseThrow(() -> new KayitBulunamadiException("Kullanici", komut.kullaniciAdi()));

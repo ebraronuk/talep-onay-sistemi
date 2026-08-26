@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/api/raporlar")
+@RequestMapping("/api/v1/raporlar")
 @Tag(name = "Raporlar", description = "Yonetici ozet raporlari")
 public class RaporController {
 

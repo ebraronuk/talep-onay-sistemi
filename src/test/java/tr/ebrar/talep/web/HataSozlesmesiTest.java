@@ -39,7 +39,7 @@ class HataSozlesmesiTest extends VeritabaniTestTemeli {
     @Test
     @DisplayName("Bilinmeyen yol 404 doner, 500 degil")
     void bilinmeyenYol404() throws Exception {
-        mockMvc.perform(get("/api/boyle-bir-uc-yok").with(user("biri").roles("PERSONEL")))
+        mockMvc.perform(get("/api/v1/boyle-bir-uc-yok").with(user("biri").roles("PERSONEL")))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.kod").value("KAYNAK_BULUNAMADI"))
                 .andExpect(jsonPath("$.mesaj").exists())
@@ -49,7 +49,7 @@ class HataSozlesmesiTest extends VeritabaniTestTemeli {
     @Test
     @DisplayName("Desteklenmeyen HTTP metodu 405 doner")
     void desteklenmeyenMetot405() throws Exception {
-        mockMvc.perform(delete("/api/talepler").with(user("biri").roles("PERSONEL")))
+        mockMvc.perform(delete("/api/v1/talepler").with(user("biri").roles("PERSONEL")))
                 .andExpect(status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.kod").value("DESTEKLENMEYEN_METOT"));
     }
@@ -57,7 +57,7 @@ class HataSozlesmesiTest extends VeritabaniTestTemeli {
     @Test
     @DisplayName("Desteklenmeyen icerik tipi 415 doner")
     void desteklenmeyenIcerikTipi415() throws Exception {
-        mockMvc.perform(post("/api/talepler")
+        mockMvc.perform(post("/api/v1/talepler")
                         .with(user("biri").roles("PERSONEL"))
                         .contentType(MediaType.TEXT_PLAIN)
                         .content("duz metin"))
@@ -68,7 +68,7 @@ class HataSozlesmesiTest extends VeritabaniTestTemeli {
     @Test
     @DisplayName("Bozuk JSON govdesi 400 doner ve ic detay sizmaz")
     void bozukGovde400() throws Exception {
-        mockMvc.perform(post("/api/talepler")
+        mockMvc.perform(post("/api/v1/talepler")
                         .with(user("biri").roles("PERSONEL"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{ bu gecerli json degil "))
@@ -81,7 +81,7 @@ class HataSozlesmesiTest extends VeritabaniTestTemeli {
     @Test
     @DisplayName("Yol degiskeni beklenen tipte degilse 400 doner")
     void gecersizYolDegiskeni400() throws Exception {
-        mockMvc.perform(get("/api/talepler/abc").with(user("biri").roles("PERSONEL")))
+        mockMvc.perform(get("/api/v1/talepler/abc").with(user("biri").roles("PERSONEL")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.kod").value("GECERSIZ_PARAMETRE"))
                 .andExpect(jsonPath("$.mesaj").value("'id' parametresi beklenen tipte degil"));
@@ -90,7 +90,7 @@ class HataSozlesmesiTest extends VeritabaniTestTemeli {
     @Test
     @DisplayName("Hata govdesi her durumda ayni dort alani tasir")
     void sozlesmeTutarli() throws Exception {
-        mockMvc.perform(get("/api/talepler/999999").with(user("biri").roles("PERSONEL")))
+        mockMvc.perform(get("/api/v1/talepler/999999").with(user("biri").roles("PERSONEL")))
                 .andExpect(jsonPath("$.kod").exists())
                 .andExpect(jsonPath("$.mesaj").exists())
                 .andExpect(jsonPath("$.detaylar").isArray())

@@ -6,7 +6,7 @@ Personel talep açar, birim amiri onaylar veya reddeder, her durum değişikliğ
 
 Spring Boot 3.5 · Java 21 · PostgreSQL 16 · Spring Security (JWT) · React + TypeScript · Docker · GitHub Actions
 
-**156 test yeşil** (141 arka uç, 15 ön yüz). Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
+**174 test yeşil** (159 arka uç, 15 ön yüz). Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
 
 ---
 
@@ -171,12 +171,12 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant BLD as BildirimServisi
 
-    P->>API: POST /api/talepler
+    P->>API: POST /api/v1/talepler
     API->>SRV: olustur(komut)
     SRV->>DB: talep (TASLAK) + onay kaydı
     API-->>P: 201 Created
 
-    P->>API: POST /api/talepler/{id}/onaya-gonder
+    P->>API: POST /api/v1/talepler/{id}/onaya-gonder
     API->>SRV: onayaGonder(id)
     Note over SRV: sahibi mi? durum geçişi geçerli mi?
     SRV->>DB: durum BEKLEMEDE + onay kaydı
@@ -184,7 +184,7 @@ sequenceDiagram
     SRV-)BLD: TalepDurumuDegistiOlayi
     BLD->>DB: birimdeki amirlere bildirim
 
-    A->>API: POST /api/talepler/{id}/karar
+    A->>API: POST /api/v1/talepler/{id}/karar
     Note over SRV: rolü AMIR mi? aynı birim mi?<br/>kendi talebi değil ya?
     SRV->>DB: durum ONAYLANDI + onay kaydı
     SRV-)BLD: TalepDurumuDegistiOlayi
@@ -211,8 +211,9 @@ Aşağıdaki her sayı gerçek bir çalıştırmadan alındı. Ham çıktılar [
 | Yazma p95 (50 eşzamanlı) | 91,1 ms | 400 ms |
 | Okuma verimi | 1505 istek/sn | - |
 | Bellek (boşta, RSS) | 331 MB | 512 MB |
-| Servis katmanı satır kapsamı | %96,4 | %85 |
-| Proje geneli satır kapsamı | %88,5 | %80 |
+| Servis katmanı satır kapsamı | %92,1 | %85 |
+| Proje geneli satır kapsamı | %90,4 | %80 |
+| Mutasyon skoru (iş mantığı sınıfları) | %92-100 | - |
 
 Yük testini kendiniz çalıştırmak için (uygulama `demo` profiliyle ayaktayken):
 
@@ -225,7 +226,7 @@ node scripts/yuk-testi.mjs
 ## Testler
 
 ```bash
-./mvnw clean verify          # arka uç: 141 test + biçim denetimi + kapsam eşiği
+./mvnw clean verify          # arka uç: 159 test + biçim denetimi + kapsam eşiği
 cd frontend && npm test      # ön yüz: 15 test
 ```
 
@@ -240,6 +241,8 @@ cd frontend && npm test      # ön yüz: 15 test
 | Transaction, kilitleme, bildirim | 8 | Rollback, iyimser kilit, commit sonrası olay |
 | Korelasyon kimliği | 4 | İstek izlenebilirliği |
 | Performans bekçisi | 1 | Sayfalama regresyona düşerse test kırılır |
+| Denetim izi koruması | 3 | Trigger, SQL ile bile değişikliğe izin vermiyor |
+| Varlık kimliği | 12 | `equals`/`hashCode` sözleşmesi, beş varlık için |
 | Ön yüz (Vitest) | 15 | Giriş, talep oluşturma, onaylama akışları |
 
 Testler gerçek PostgreSQL üzerinde çalışır (Testcontainers). H2 kullanılmadı: kısmi indeks, `TIMESTAMPTZ` davranışı ve kısıt hata kodları farklı olduğu için H2'de yeşil olup üretimde patlayan test üretme riski var.
@@ -260,6 +263,8 @@ Testler gerçek PostgreSQL üzerinde çalışır (Testcontainers). H2 kullanılm
 | Ön yüz lint | oxlint | uyarı toleransı sıfır |
 
 Yerelde biçim düzeltmek için: `./mvnw spotless:apply`
+
+**Mutasyon testi** ayrı profilde: `./mvnw -Pmutasyon test`. Satır kapsamı "bu satır çalıştı" der, "doğru çalıştı" demez. İlk çalıştırma gerçek bir test boşluğu buldu; detay [docs/performans.md](docs/performans.md) bölüm 6.
 
 ---
 
@@ -308,7 +313,7 @@ Her birinin gerekçesi ve reddedilen alternatifi [docs/decisions.md](docs/decisi
 │   ├── web/             controller, hata yönetimi, korelasyon kimliği
 │   └── config/          JPA auditing, OpenAPI, demo verisi
 ├── src/main/resources/db/migration/   Flyway şema dosyaları
-├── src/test/java/       141 test (mimari kuralları dahil)
+├── src/test/java/       159 test (mimari kuralları dahil)
 ├── frontend/            React + TypeScript + Vite
 ├── scripts/yuk-testi.mjs
 ├── docs/

@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 
 import tr.ebrar.talep.destek.VeriUretici;
+import tr.ebrar.talep.destek.VeritabaniTemizleyici;
 import tr.ebrar.talep.destek.VeritabaniTestTemeli;
 import tr.ebrar.talep.domain.Bildirim;
 import tr.ebrar.talep.domain.Birim;
@@ -33,6 +34,9 @@ class BildirimServisiTest extends VeritabaniTestTemeli {
 
     @Autowired
     private BildirimRepository bildirimRepository;
+
+    @Autowired
+    private VeritabaniTemizleyici veritabaniTemizleyici;
 
     @Autowired
     private TalepRepository talepRepository;
@@ -66,11 +70,7 @@ class BildirimServisiTest extends VeritabaniTestTemeli {
 
     @AfterEach
     void temizle() {
-        bildirimRepository.deleteAllInBatch();
-        onayKaydiRepository.deleteAllInBatch();
-        talepRepository.deleteAllInBatch();
-        kullaniciRepository.deleteAllInBatch();
-        birimRepository.deleteAllInBatch();
+        veritabaniTemizleyici.hepsiniTemizle();
     }
 
     @Test

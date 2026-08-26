@@ -1,7 +1,8 @@
 import { oturumDeposu, OTURUM_DUSTU } from '../kimlik/oturumDeposu';
 import type { HataYaniti } from './tipler';
 
-const TABAN = import.meta.env.VITE_API_TABANI ?? '/api';
+// Surum onegi tek yerde. Ileride v2 cikarsa ekranlar degismeden buradan gecilir.
+const TABAN = import.meta.env.VITE_API_TABANI ?? '/api/v1';
 
 /**
  * Arka uctan gelen hatalari tasiyan istisna.

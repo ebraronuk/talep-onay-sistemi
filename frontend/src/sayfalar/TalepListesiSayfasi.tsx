@@ -81,7 +81,11 @@ export function TalepListesiSayfasi() {
       </div>
 
       {durum === 'hata' && <p role="alert" className="hata-kutusu">Talepler yüklenemedi</p>}
-      {durum === 'yukleniyor' && <p>Yükleniyor...</p>}
+      {durum === 'yukleniyor' && (
+        <p role="status" aria-live="polite">
+          Yükleniyor...
+        </p>
+      )}
 
       {durum === 'hazir' && sayfa && sayfa.icerik.length === 0 && (
         <p className="bos-durum">Bu filtreye uyan talep yok.</p>
@@ -102,16 +106,19 @@ export function TalepListesiSayfasi() {
           <tbody>
             {sayfa.icerik.map((talep) => (
               <tr key={talep.id}>
-                <td>
+                {/* data-etiket: mobilde thead gizleniyor, hucre basligi buradan yaziliyor */}
+                <td data-etiket="Başlık">
                   <Link to={`/talepler/${talep.id}`}>{talep.baslik}</Link>
                 </td>
-                <td>{TUR_ETIKETLERI[talep.tur]}</td>
-                <td>{talep.talepEdenAdSoyad}</td>
-                <td>{talep.birimKodu}</td>
-                <td>
+                <td data-etiket="Tür">{TUR_ETIKETLERI[talep.tur]}</td>
+                <td data-etiket="Talep eden">{talep.talepEdenAdSoyad}</td>
+                <td data-etiket="Birim">{talep.birimKodu}</td>
+                <td data-etiket="Durum">
                   <DurumRozeti durum={talep.durum} />
                 </td>
-                <td>{new Date(talep.olusturmaTarihi).toLocaleDateString('tr-TR')}</td>
+                <td data-etiket="Tarih">
+                  {new Date(talep.olusturmaTarihi).toLocaleDateString('tr-TR')}
+                </td>
               </tr>
             ))}
           </tbody>
