@@ -1,0 +1,36 @@
+services:
+  veritabani:
+    image: postgres:16-alpine
+    container_name: talep-onay-veritabani
+    environment:
+      POSTGRES_DB: talep_onay
+      POSTGRES_USER: talep
+      POSTGRES_PASSWORD: talep
+    ports:
+      - "5432:5432"
+    volumes:
+      - talep_onay_verisi:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U talep -d talep_onay"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  uygulama:
+    build:
+      context: .
+    container_name: talep-onay-uygulama
+    depends_on:
+      veritabani:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      DB_URL: jdbc:postgresql://veritabani:5432/talep_onay
+      DB_USERNAME: talep
+      DB_PASSWORD: talep
+      JWT_SECRET: yerel-gelistirme-icin-en-az-256-bit-uzunlugunda-gecici-anahtar-degeri
+    ports:
+      - "8080:8080"
+
+volumes:
+  talep_onay_verisi:
