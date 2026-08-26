@@ -135,3 +135,33 @@ medyan=2 ms, en kotu=3 ms, tum olcumler=[2, 2, 2, 2, 2, 2, 2, 2, 2, 3]
 | En kötü tur | 3 ms | 200 ms | Geçti |
 
 Sınırın 100 katı altında kalınması sürpriz değil: sorgu `ix_talep_durum_birim` indeksini kullanıyor, sayfa boyutu 20 ve ilişkiler tek sorguda geliyor. Bu ölçümün asıl değeri mutlak sayı değil, **regresyon bekçisi** olması: biri `@EntityGraph`'ı kaldırırsa veya indeksi düşürürse bu test kırmızıya döner.
+
+---
+
+## 4. Faz 4: Test kapsamı (JaCoCo)
+
+`./mvnw clean verify` çıktısındaki `target/site/jacoco/jacoco.csv` dosyasından, paket bazında satır kapsamı:
+
+| Paket | Satır kapsamı |
+|---|---|
+| `service` | **%96,5** (195/202) |
+| `security` | %97,0 (97/100) |
+| `repository` | %88,2 (15/17) |
+| `web` | %84,7 (61/72) |
+| `service.hata` | %88,2 (15/17) |
+| `domain` | %75,1 (130/173) |
+
+Kabul kriteri servis katmanı için %70 idi, %96,5 ile sağlandı.
+
+`domain` paketindeki %75, kapsanmayan `equals`/`hashCode`/`toString` dallarından geliyor; bunlar için test yazmak kapsam sayısını süsler ama bir şey kanıtlamaz. `config` paketi düşük çünkü demo veri yükleyici yalnızca `demo` profilinde çalışıyor ve testlerde devrede değil.
+
+**Toplam: 120 test, hepsi yeşil.**
+
+| Test türü | Adet | Nerede |
+|---|---|---|
+| Saf birim (Spring yok) | 41 | durum makinesi, servis + Mockito |
+| Repository (gerçek PostgreSQL) | 20 | Testcontainers |
+| HTTP katmanı (`@WebMvcTest`) | 13 | hata sözleşmesi, status kodları |
+| Güvenlik entegrasyonu | 32 | gerçek filtre zinciri |
+| Transaction / bildirim | 7 | rollback davranışı, commit sonrası olay |
+| Performans bekçisi | 1 | 1000 kayıtta sayfalama |
