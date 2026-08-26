@@ -27,6 +27,9 @@ frontend/.vite/
 ### Yuk testi ciktilari ###
 docs/yuk-testi-ham/
 
+### Editor / arac ayarlari ###
+.claude/
+
 ### Kisisel notlar: depoya girmez ###
 # Mulakat hazirligi, gunluk, kendi kendime aciklamalar. Proje public olacagi icin
 # bunlar disarida kaliyor. docs/ altindakiler ise projeye ait, onlar depoda.

@@ -39,3 +39,28 @@ jobs:
             target/surefire-reports/
             target/site/jacoco/
           if-no-files-found: ignore
+
+  on-yuz:
+    name: On yuz derleme ve test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Node kur
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Bagimliliklari kur
+        run: npm ci
+
+      - name: Testleri calistir
+        run: npm test
+
+      - name: Uretim derlemesi
+        run: npm run build
