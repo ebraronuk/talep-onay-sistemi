@@ -81,3 +81,57 @@ LIMIT 20;
 Kabul kriteri (sequential scan olmayacak) **sağlandı**. Sorgu, `ix_talep_durum_birim` bileşik indeksini `Index Cond` içinde her iki kolonuyla birlikte kullanıyor; `Filter` satırında elenen kayıt yok, yani indeks sorgunun tamamını karşılıyor.
 
 **Kolon sırası neden (durum, birim_id).** Her iki kolon da eşitlikle filtrelendiği için sıralama seçiciliğe göre yapıldı. Ters sıra da çalışırdı; ancak `durum` tek başına da sorgulanan bir kolon (yöneticinin "sistemdeki tüm bekleyen talepler" ekranı), `birim_id` tek başına sorgulanmıyor. Bileşik indeks yalnızca soldan başlayan önek için kullanılabildiğinden `durum` başa alındı.
+
+---
+
+## 2. Faz 3: N+1 sorgu problemi, önce ve sonra
+
+**Soru.** 10 talep ilişkileriyle listelendiğinde kaç SQL deyimi çalışıyor?
+
+**Ölçüm yöntemi.** Tahmin değil sayım: Hibernate'in `generate_statistics` özelliği açıldı ve `Statistics.getPrepareStatementCount()` okundu. Ölçümden önce `EntityManager.clear()` çağrılıyor; yoksa varlıklar zaten kalıcılık bağlamında olur ve hiç SELECT çalışmaz, ölçüm anlamsızlaşır.
+
+**Kurulum.** 10 talebin her biri **farklı** bir kullanıcıya ait. Hepsi aynı kullanıcıya ait olsaydı Hibernate ilk yüklemeden sonra kalıcılık bağlamından dönerdi ve problem görünmezdi.
+
+İlgili test: `src/test/java/tr/ebrar/talep/repository/TalepNArtiBirTest.java`
+
+### Ölçüm çıktısı
+
+Testin kendi log satırları (`./mvnw test -Dtest=TalepNArtiBirTest` çalıştırılınca aynen görülür):
+
+```
+N+1 OLCUMU (grafiksiz):          liste sorgusu=1, iliskiler icin ek sorgu=10, toplam=11
+N+1 OLCUMU (@EntityGraph):       liste sorgusu=1, iliskiler icin ek sorgu=0,  toplam=1
+N+1 OLCUMU (Specification+fetch): yukleme=2 (icerik + count), ek sorgu=0
+```
+
+| Yaklaşım | Liste sorgusu | İlişkiler için ek sorgu | Toplam |
+|---|---|---|---|
+| `findAll()`, ilişkiler tembel | 1 | 10 | **11** |
+| `@EntityGraph(attributePaths = {"talepEden", "birim"})` | 1 | 0 | **1** |
+| `Specification` + `root.fetch(...)`, sayfalı | 2 (içerik + adet) | 0 | **2** |
+
+**Yorum.** Klasik N+1: bir liste sorgusu, sonra her satır için bir sorgu daha. 10 kayıtta fark edilmez, 500 kayıtlık bir raporda uygulamayı durdurur. Çözüm ilişkiyi EAGER yapmak **değil**; EAGER, ilişkiye ihtiyaç duymayan sorguları da yavaşlatır ve sorunu tek bir yere değil her yere yayar. Doğru çözüm, ilişkinin gerektiği sorguda `@EntityGraph` veya `join fetch` ile açıkça istenmesi.
+
+**Sayfalamada dikkat.** `Specification` ile fetch join yapılırken Spring Data ayrıca bir `count` sorgusu çalıştırır. Count sorgusunun sonuç tipi `Long`'dur ve fetch join içeremez. `TalepSpecifications.iliskileriGetir()` bu yüzden `query.getResultType()` kontrolü yapar; kontrol kaldırılırsa sayfalı sorgular çalışma anında hata verir.
+
+---
+
+## 3. Faz 3: 1000 kayıtta sayfalı listeleme süresi
+
+**Kabul kriteri.** 1000 kayıtta 20'lik sayfa 200 ms altında dönmeli.
+
+**Yöntem.** 3 ısınma turu (JIT derlemesi, bağlantı havuzu, plan önbelleği ısınsın), ardından 10 ölçüm turu. Karar medyana göre verildi. Ölçüme ilişkilere erişim de dahil: N+1 olsaydı süre buradan patlardı.
+
+İlgili test: `src/test/java/tr/ebrar/talep/repository/TalepListelemePerformansTest.java`
+
+```
+SAYFALAMA OLCUMU: 1000 kayit, sayfa boyutu 20,
+medyan=2 ms, en kotu=3 ms, tum olcumler=[2, 2, 2, 2, 2, 2, 2, 2, 2, 3]
+```
+
+| Ölçüt | Değer | Sınır | Sonuç |
+|---|---|---|---|
+| Medyan | 2 ms | 200 ms | Geçti |
+| En kötü tur | 3 ms | 200 ms | Geçti |
+
+Sınırın 100 katı altında kalınması sürpriz değil: sorgu `ix_talep_durum_birim` indeksini kullanıyor, sayfa boyutu 20 ve ilişkiler tek sorguda geliyor. Bu ölçümün asıl değeri mutlak sayı değil, **regresyon bekçisi** olması: biri `@EntityGraph`'ı kaldırırsa veya indeksi düşürürse bu test kırmızıya döner.

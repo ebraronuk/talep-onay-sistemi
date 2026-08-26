@@ -1,0 +1,20 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        # Sorgu sayimi testleri bu istatistikleri okur (N+1 kaniti).
+        generate_statistics: true
+    open-in-view: false
+  flyway:
+    enabled: true
+
+talep:
+  jwt:
+    gizli-anahtar: test-ortami-icin-en-az-256-bit-uzunlugunda-sabit-anahtar-degeri
+    gecerlilik-suresi-dakika: 60
+
+logging:
+  level:
+    org.hibernate.SQL: INFO
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN
