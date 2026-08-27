@@ -77,7 +77,7 @@ class TalepServisiTransactionTest extends VeritabaniTestTemeli {
         kullaniciRepository.save(VeriUretici.kullanici("trxamir", Rol.AMIR, birim));
 
         TalepDetayDto olusan = talepServisi.olustur(
-                new TalepOlusturKomutu("Klavye talebi", "Mevcut klavye bozuldu", TalepTuru.DONANIM),
+                new TalepOlusturKomutu("Klavye talebi", "Mevcut klavye bozuldu", TalepTuru.DONANIM, null),
                 "trxpersonel");
         talepId = olusan.id();
 

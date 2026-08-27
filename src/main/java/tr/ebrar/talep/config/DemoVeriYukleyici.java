@@ -1,5 +1,7 @@
 package tr.ebrar.talep.config;
 
+import java.math.BigDecimal;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -101,6 +103,18 @@ public class DemoVeriYukleyici implements ApplicationRunner {
         reddedilmis.durumDegistir(TalepDurumu.BEKLEMEDE, mehmet, null);
         reddedilmis.durumDegistir(TalepDurumu.REDDEDILDI, ali, "Bu donem donanim butcesi kapandi.");
         talepRepository.save(reddedilmis);
+
+        // Iki kademeli onayin gorunur oldugu ornek: tutar limiti asiyor, birim amiri
+        // onayladi ama is bitmedi, yonetici onayinda bekliyor.
+        Talep yuksekTutarli = new Talep(
+                "Sunucu yenileme",
+                "Uc adet sunucunun garanti suresi doldu, yenilenmesi gerekiyor.",
+                TalepTuru.SATIN_ALMA,
+                mehmet,
+                new BigDecimal("120000.00"));
+        yuksekTutarli.durumDegistir(TalepDurumu.BEKLEMEDE, mehmet, null);
+        yuksekTutarli.durumDegistir(TalepDurumu.YONETICI_ONAYINDA, ali, "Birim ihtiyaci uygun, tutar limiti asiyor.");
+        talepRepository.save(yuksekTutarli);
 
         Talep muhasebeTalebi = new Talep("Yazici toneri",
                 "Muhasebe katindaki yazicinin toneri bitmek uzere.",

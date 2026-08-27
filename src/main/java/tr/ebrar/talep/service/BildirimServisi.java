@@ -16,7 +16,6 @@ import tr.ebrar.talep.domain.Bildirim;
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.Rol;
 import tr.ebrar.talep.domain.Talep;
-import tr.ebrar.talep.domain.TalepDurumu;
 import tr.ebrar.talep.hata.KayitBulunamadiException;
 import tr.ebrar.talep.hata.YetkisizIslemException;
 import tr.ebrar.talep.repository.BildirimRepository;
@@ -98,17 +97,22 @@ public class BildirimServisi {
     }
 
     private List<Kullanici> aliciBelirle(TalepDurumuDegistiOlayi olay) {
-        if (olay.yeniDurum() == TalepDurumu.BEKLEMEDE) {
+        return switch (olay.yeniDurum()) {
             // Talep onaya dustu: birimdeki amirlerin haberi olsun.
-            return kullaniciRepository.findByBirimIdAndRolAndAktifTrue(olay.birimId(), Rol.AMIR);
-        }
-        // Karar verildi: talebi acan kisiye haber gidiyor.
-        return kullaniciRepository.findById(olay.talepSahibiId()).map(List::of).orElseGet(List::of);
+            case BEKLEMEDE -> kullaniciRepository.findByBirimIdAndRolAndAktifTrue(olay.birimId(), Rol.AMIR);
+            // Ikinci kademeye dustu: yoneticilere haber gidiyor.
+            case YONETICI_ONAYINDA -> kullaniciRepository.findByRolAndAktifTrue(Rol.YONETICI);
+            // Karar verildi ya da taslaga dondu: talebi acan kisiye haber gidiyor.
+            case ONAYLANDI, REDDEDILDI, TASLAK ->
+                    kullaniciRepository.findById(olay.talepSahibiId()).map(List::of).orElseGet(List::of);
+        };
     }
 
     private String mesajUret(TalepDurumuDegistiOlayi olay) {
         return switch (olay.yeniDurum()) {
             case BEKLEMEDE -> "\"%s\" talebi onayinizi bekliyor.".formatted(olay.talepBasligi());
+            case YONETICI_ONAYINDA -> "\"%s\" talebi tutar limitini astigi icin onayinizi bekliyor."
+                    .formatted(olay.talepBasligi());
             case ONAYLANDI -> "\"%s\" talebiniz onaylandi.".formatted(olay.talepBasligi());
             case REDDEDILDI -> "\"%s\" talebiniz reddedildi.".formatted(olay.talepBasligi());
             case TASLAK -> "\"%s\" talebi taslaga alindi.".formatted(olay.talepBasligi());

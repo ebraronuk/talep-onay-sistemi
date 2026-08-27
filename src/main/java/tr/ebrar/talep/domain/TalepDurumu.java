@@ -9,9 +9,17 @@ import java.util.Set;
  * Talep durum makinesi.
  *
  * <pre>
- *   TASLAK ---> BEKLEMEDE ---> ONAYLANDI
- *                         \--> REDDEDILDI
+ *   TASLAK ---> BEKLEMEDE ---> ONAYLANDI              (tutar limit altinda)
+ *                     |
+ *                     +------> YONETICI_ONAYINDA ---> ONAYLANDI   (tutar limit ustunde)
+ *                     |                          \--> REDDEDILDI
+ *                     \------> REDDEDILDI
  * </pre>
+ *
+ * <p>Hangi dala gidilecegini tutar belirliyor: birim amiri belli bir limite kadar
+ * tek basina onaylayabilir, ustunu yonetici onayina gonderir. Kural servis
+ * katmaninda (bkz. TalepServisi.karar), burada yalnizca gecisin izinli olup
+ * olmadigi tanimli.
  *
  * <p>ONAYLANDI ve REDDEDILDI nihai durumlardir; bu durumlardan cikis yoktur.
  * Izin verilen gecisler burada, tek bir yerde tanimlidir. Servis katmani gecis
@@ -22,12 +30,15 @@ public enum TalepDurumu {
 
     TASLAK,
     BEKLEMEDE,
+    /** Birim amiri onayladi ama tutar limiti astigi icin yonetici onayi bekliyor. */
+    YONETICI_ONAYINDA,
     ONAYLANDI,
     REDDEDILDI;
 
     private static final Map<TalepDurumu, Set<TalepDurumu>> IZINLI_GECISLER = Map.of(
             TASLAK, EnumSet.of(BEKLEMEDE),
-            BEKLEMEDE, EnumSet.of(ONAYLANDI, REDDEDILDI),
+            BEKLEMEDE, EnumSet.of(YONETICI_ONAYINDA, ONAYLANDI, REDDEDILDI),
+            YONETICI_ONAYINDA, EnumSet.of(ONAYLANDI, REDDEDILDI),
             ONAYLANDI, EnumSet.noneOf(TalepDurumu.class),
             REDDEDILDI, EnumSet.noneOf(TalepDurumu.class)
     );

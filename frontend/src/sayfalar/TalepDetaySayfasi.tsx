@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, ApiHatasi } from '../api/istemci';
 import { DurumRozeti } from '../bilesenler/DurumRozeti';
-import { DURUM_ETIKETLERI, TUR_ETIKETLERI } from '../api/tipler';
+import { DURUM_ETIKETLERI, TUR_ETIKETLERI, tutarBicimle } from '../api/tipler';
 import type { TalepDetayi } from '../api/tipler';
 import { useOturum } from '../kimlik/useOturum';
 
@@ -58,9 +58,14 @@ export function TalepDetaySayfasi() {
 
   const sahibiyim = kullanici?.id === talep.talepEden.id;
   const onayaGonderebilirim = sahibiyim && talep.durum === 'TASLAK';
-  // Amir kendi talebine karar veremiyor; dugmeyi gostermenin anlami yok.
+  // Iki kademe var ve her kademede karar verebilecek rol farkli: birinci kademede
+  // AMIR (BEKLEMEDE), tutar limiti asildiginda ikinci kademede YONETICI
+  // (YONETICI_ONAYINDA). Amir kendi talebine karar veremiyor; dugmeyi gostermenin
+  // anlami yok.
   const kararVerebilirim =
-    kullanici?.rol === 'AMIR' && talep.durum === 'BEKLEMEDE' && !sahibiyim;
+    !sahibiyim &&
+    ((kullanici?.rol === 'AMIR' && talep.durum === 'BEKLEMEDE') ||
+      (kullanici?.rol === 'YONETICI' && talep.durum === 'YONETICI_ONAYINDA'));
 
   return (
     <section className="detay">
@@ -75,6 +80,12 @@ export function TalepDetaySayfasi() {
             <dt>Tür</dt>
             <dd>{TUR_ETIKETLERI[talep.tur]}</dd>
           </div>
+          {talep.tutar !== null && (
+            <div>
+              <dt>Tutar</dt>
+              <dd className="tutar">{tutarBicimle(talep.tutar)}</dd>
+            </div>
+          )}
           <div>
             <dt>Talep eden</dt>
             <dd>{talep.talepEden.adSoyad}</dd>

@@ -5,7 +5,12 @@
 
 export type Rol = 'PERSONEL' | 'AMIR' | 'YONETICI';
 
-export type TalepDurumu = 'TASLAK' | 'BEKLEMEDE' | 'ONAYLANDI' | 'REDDEDILDI';
+export type TalepDurumu =
+  | 'TASLAK'
+  | 'BEKLEMEDE'
+  | 'YONETICI_ONAYINDA'
+  | 'ONAYLANDI'
+  | 'REDDEDILDI';
 
 export type TalepTuru = 'IZIN' | 'SATIN_ALMA' | 'DONANIM' | 'EGITIM' | 'DIGER';
 
@@ -29,6 +34,9 @@ export interface TalepOzeti {
   baslik: string;
   tur: TalepTuru;
   durum: TalepDurumu;
+  // Arka uc BigDecimal donuyor, JSON'da sayi olarak geliyor. Bos birakilabilir:
+  // izin talebinin parasal karsiligi yok.
+  tutar: number | null;
   talepEdenAdSoyad: string;
   birimKodu: string;
   olusturmaTarihi: string;
@@ -49,6 +57,7 @@ export interface TalepDetayi {
   aciklama: string;
   tur: TalepTuru;
   durum: TalepDurumu;
+  tutar: number | null;
   talepEden: KullaniciOzeti;
   birimKodu: string;
   birimAdi: string;
@@ -96,10 +105,23 @@ export interface HataYaniti {
 
 export const DURUM_ETIKETLERI: Record<TalepDurumu, string> = {
   TASLAK: 'Taslak',
-  BEKLEMEDE: 'Onay bekliyor',
+  BEKLEMEDE: 'Amir onayında',
+  YONETICI_ONAYINDA: 'Yönetici onayında',
   ONAYLANDI: 'Onaylandı',
   REDDEDILDI: 'Reddedildi',
 };
+
+/** Tutari kurumsal bicimde gosterir. Bos tutar tire ile gosteriliyor. */
+export function tutarBicimle(tutar: number | null): string {
+  if (tutar === null || tutar === undefined) {
+    return '-';
+  }
+  return new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency: 'TRY',
+    maximumFractionDigits: 2,
+  }).format(tutar);
+}
 
 export const TUR_ETIKETLERI: Record<TalepTuru, string> = {
   IZIN: 'İzin',

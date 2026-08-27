@@ -764,3 +764,18 @@ summary:focus-visible {
     width: 100%;
   }
 }
+
+/* Ikinci kademe onay durumu: bekleyen ama farkli bir asamada olan talep */
+.rozet-yonetici_onayinda {
+  background: #e8eefc;
+  color: #2a4b8d;
+}
+
+.cubuk-yonetici_onayinda {
+  background: #4a6fb5;
+}
+
+.tutar {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

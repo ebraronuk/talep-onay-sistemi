@@ -110,7 +110,7 @@ Kalıtımın kullanılmadığı yer de bilinçli: `Talep`, `Birim`, `Kullanici` 
 |---|---|
 | Hata yönetimi | `HataYakalayici` istisna tipine göre farklı davranıyor; yeni bir istisna tipi eklemek yalnızca bir metot eklemek demek |
 | `Specification` kompozisyonu | Fonksiyonel arayüz; filtreler çalışma anında birleştiriliyor |
-| `Karar` enum'u | Her sabit kendi hedef durumunu taşıyor (`ONAYLA -> ONAYLANDI`), `switch` yazmaya gerek kalmıyor |
+| `Karar` enum'u | İstemci yalnızca `ONAYLA`/`REDDET` bilir; hedef duruma çevrim `TalepServisi` içinde, durum makinesinin iç detayı istemciye sızmaz |
 | `TalepDurumu` | Geçiş kuralları enum'un kendi içinde; her sabit kendi izinli hedeflerini biliyor |
 
 ### Soyutlama (abstraction) ve arayüzler
@@ -219,13 +219,13 @@ Kanıt: `TalepServisiTransactionTest.esZamanliGuncellemeIkincisiCakisir`.
 ```
         ▲  az sayıda, yavaş, gerçekçi
         │
-   ┌────┴────┐  Güvenlik entegrasyonu (32)  gerçek filtre zinciri + gerçek PostgreSQL
+   ┌────┴────┐  Güvenlik entegrasyonu (33)  gerçek filtre zinciri + gerçek PostgreSQL
    │         │  Transaction / bildirim (8)  rollback, commit sonrası olay
    ├─────────┤
    │         │  Repository (26)             gerçek PostgreSQL, N+1, tembel yükleme
    │         │  HTTP katmanı (19)           status kodları, hata sözleşmesi
    ├─────────┤
-   │         │  Saf birim (41)              durum makinesi, servis + Mockito
+   │         │  Saf birim (60)              durum makinesi (iki kademe dahil), servis + Mockito
    │         │  Mimari (10)                 ArchUnit katman kuralları
    └─────────┘
         │

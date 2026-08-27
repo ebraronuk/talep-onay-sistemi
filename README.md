@@ -6,7 +6,7 @@ Personel talep açar, birim amiri onaylar veya reddeder, her durum değişikliğ
 
 Spring Boot 3.5 · Java 21 · PostgreSQL 16 · Spring Security (JWT) · React + TypeScript · Docker · GitHub Actions
 
-**174 test yeşil** (159 arka uç, 15 ön yüz). Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
+**202 test yeşil** (182 arka uç, 20 ön yüz). Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
 
 ---
 
@@ -43,9 +43,11 @@ Uygulama `demo` profiliyle açıldığında örnek veri yüklenir. Hepsinin şif
 |---|---|---|
 | `ayse.yilmaz` | PERSONEL | Kendi talebini açar, onaya gönderir, yalnızca kendi taleplerini görür |
 | `ali.vural` | AMIR | BTGM birimindeki talepleri onaylar veya reddeder |
-| `hakan.ozturk` | YONETICI | Tüm birimleri ve özet raporu görür, onay veremez |
+| `hakan.ozturk` | YONETICI | Tüm birimleri ve özet raporu görür; tutar limitini aşan taleplerde ikinci kademe onayı verir |
 
 Denemeye değer akış: `ayse.yilmaz` ile giriş yapıp talep açın ve onaya gönderin, sonra `ali.vural` ile girip onaylayın. Talep detayındaki onay geçmişi her adımı kimin ne zaman yaptığıyla birlikte tutar.
+
+İki kademeli onayı görmek için: demo verisinde `mehmet.demir`'in açtığı "Sunucu yenileme" talebi (120.000 TL) `ali.vural` onayından geçmiş ve `hakan.ozturk`'ün ikinci kademe onayını bekliyor durumda gelir. `hakan.ozturk` ile giriş yapıp o talebi sonuçlandırabilirsiniz.
 
 ---
 
@@ -121,6 +123,7 @@ erDiagram
         varchar baslik
         varchar tur
         varchar durum "durum makinesi"
+        numeric tutar "opsiyonel, onay kademesini belirler"
         bigint talep_eden_id FK
         bigint birim_id FK
     }
@@ -146,17 +149,22 @@ Her tabloda `olusturma_tarihi`, `guncelleme_tarihi`, `olusturan_kullanici` denet
 stateDiagram-v2
     [*] --> TASLAK : personel talebi açar
     TASLAK --> BEKLEMEDE : onaya gönder
-    BEKLEMEDE --> ONAYLANDI : amir onaylar
+    BEKLEMEDE --> ONAYLANDI : amir onaylar (tutar limit altında)
+    BEKLEMEDE --> YONETICI_ONAYINDA : amir onaylar (tutar limit üstünde)
     BEKLEMEDE --> REDDEDILDI : amir reddeder (gerekçe zorunlu)
+    YONETICI_ONAYINDA --> ONAYLANDI : yönetici onaylar
+    YONETICI_ONAYINDA --> REDDEDILDI : yönetici reddeder (gerekçe zorunlu)
     ONAYLANDI --> [*]
     REDDEDILDI --> [*]
 ```
 
-İzin verilen geçişler tek bir yerde, `TalepDurumu` enum'unda tanımlı. Tanımsız her geçiş `GecersizDurumGecisiException` fırlatır ve HTTP 409 döner. 22 geçiş kombinasyonunun tamamı ayrı ayrı test edilmiş.
+İzin verilen geçişler tek bir yerde, `TalepDurumu` enum'unda tanımlı. Tanımsız her geçiş `GecersizDurumGecisiException` fırlatır ve HTTP 409 döner. 25 geçiş kombinasyonunun (5×5 durum matrisi) tamamı ayrı ayrı test edilmiş.
+
+Hangi dala gidileceğini talebin `tutar` alanı belirliyor: yapılandırılabilir bir limitin (`talep.onay.yonetici-limiti`, bkz. `OnayAyarlari`) üstündeki talepler, birim amiri onayından sonra ayrıca yönetici onayına düşer. Tutarı olmayan talepler (izin gibi) her zaman tek kademede biter. Kimin hangi kademede karar verebileceği hem `@PreAuthorize` hem de servis katmanında ayrıca kontrol edilir: bir amir ikinci kademeye, bir yönetici de birinci kademeye karışamaz.
 
 Durum değişikliği ve denetim kaydı **aynı transaction içinde** yazılır: denetim kaydı yazılamazsa talebin durumu da değişmez. Bu davranış teste bağlı, bkz. `TalepServisiTransactionTest`.
 
-İki amir aynı talebe aynı anda karar verirse ikincisi 409 alır. `Talep` varlığında `@Version` kolonu var (iyimser kilitleme); bu olmadan ikinci yazım birincinin üzerine sessizce geçer ve denetim izinde iki çelişkili kayıt kalırdı.
+İki amir (veya iki yönetici) aynı talebe aynı anda karar verirse ikincisi 409 alır. `Talep` varlığında `@Version` kolonu var (iyimser kilitleme); bu olmadan ikinci yazım birincinin üzerine sessizce geçer ve denetim izinde iki çelişkili kayıt kalırdı.
 
 ---
 
@@ -166,6 +174,7 @@ Durum değişikliği ve denetim kaydı **aynı transaction içinde** yazılır: 
 sequenceDiagram
     actor P as Personel
     actor A as Amir
+    actor Y as Yönetici
     participant API as REST API
     participant SRV as TalepServisi
     participant DB as PostgreSQL
@@ -186,10 +195,25 @@ sequenceDiagram
 
     A->>API: POST /api/v1/talepler/{id}/karar
     Note over SRV: rolü AMIR mi? aynı birim mi?<br/>kendi talebi değil ya?
-    SRV->>DB: durum ONAYLANDI + onay kaydı
-    SRV-)BLD: TalepDurumuDegistiOlayi
-    BLD->>DB: talep sahibine bildirim
-    API-->>A: 200 OK
+
+    alt tutar limit altında (veya yok)
+        SRV->>DB: durum ONAYLANDI + onay kaydı
+        SRV-)BLD: TalepDurumuDegistiOlayi
+        BLD->>DB: talep sahibine bildirim
+        API-->>A: 200 OK
+    else tutar limit üstünde: ikinci kademe
+        SRV->>DB: durum YONETICI_ONAYINDA + onay kaydı
+        SRV-)BLD: TalepDurumuDegistiOlayi
+        BLD->>DB: yöneticilere bildirim
+        API-->>A: 200 OK
+
+        Y->>API: POST /api/v1/talepler/{id}/karar
+        Note over SRV: rolü YONETICI mi?<br/>durum YONETICI_ONAYINDA mı?
+        SRV->>DB: durum ONAYLANDI + onay kaydı
+        SRV-)BLD: TalepDurumuDegistiOlayi
+        BLD->>DB: talep sahibine bildirim
+        API-->>Y: 200 OK
+    end
 ```
 
 Bildirim yazımı ana işlemden **ayrı bir transaction'da**, commit sonrasında çalışır. Bildirim yazılamazsa onay geri sarmaz: onay iş açısından asıl olan, bildirim yan etki. Karar ve gerekçesi: [decisions K-011](docs/decisions.md).
@@ -211,8 +235,8 @@ Aşağıdaki her sayı gerçek bir çalıştırmadan alındı. Ham çıktılar [
 | Yazma p95 (50 eşzamanlı) | 91,1 ms | 400 ms |
 | Okuma verimi | 1505 istek/sn | - |
 | Bellek (boşta, RSS) | 331 MB | 512 MB |
-| Servis katmanı satır kapsamı | %92,1 | %85 |
-| Proje geneli satır kapsamı | %90,4 | %80 |
+| Servis katmanı satır kapsamı | %92,9 | %85 |
+| Proje geneli satır kapsamı | %90,0 | %80 |
 | Mutasyon skoru (iş mantığı sınıfları) | %92-100 | - |
 
 Yük testini kendiniz çalıştırmak için (uygulama `demo` profiliyle ayaktayken):
@@ -226,24 +250,25 @@ node scripts/yuk-testi.mjs
 ## Testler
 
 ```bash
-./mvnw clean verify          # arka uç: 159 test + biçim denetimi + kapsam eşiği
-cd frontend && npm test      # ön yüz: 15 test
+./mvnw clean verify          # arka uç: 182 test + biçim denetimi + kapsam eşiği
+cd frontend && npm test      # ön yüz: 20 test
 ```
 
 | Tür | Adet | Ne kanıtlıyor |
 |---|---|---|
-| Saf birim (Spring yok) | 41 | Durum makinesi ve iş kuralları |
+| Saf birim (Spring yok) | 60 | Durum makinesi (iki kademe dahil) ve iş kuralları |
 | Mimari (ArchUnit) | 10 | Katman kuralları yorum değil, test |
 | Repository (gerçek PostgreSQL) | 26 | Sorgular, tembel yükleme, kısıtlar, N+1 |
 | HTTP katmanı (`@WebMvcTest`) | 13 | Status kodları, doğrulama |
 | Hata sözleşmesi | 6 | Çerçeve hataları da aynı gövdeyi döner |
-| Güvenlik entegrasyonu | 32 | Gerçek filtre zinciriyle her rol × her uç |
+| Güvenlik entegrasyonu | 33 | Gerçek filtre zinciriyle her rol × her uç |
+| İki kademeli onay (uçtan uca) | 4 | Tutar limitine göre ikinci kademeye düşme; HTTP'den denetim izine |
 | Transaction, kilitleme, bildirim | 8 | Rollback, iyimser kilit, commit sonrası olay |
 | Korelasyon kimliği | 4 | İstek izlenebilirliği |
 | Performans bekçisi | 1 | Sayfalama regresyona düşerse test kırılır |
 | Denetim izi koruması | 3 | Trigger, SQL ile bile değişikliğe izin vermiyor |
 | Varlık kimliği | 12 | `equals`/`hashCode` sözleşmesi, beş varlık için |
-| Ön yüz (Vitest) | 15 | Giriş, talep oluşturma, onaylama akışları |
+| Ön yüz (Vitest) | 20 | Giriş, talep oluşturma, iki kademeli onaylama akışları |
 
 Testler gerçek PostgreSQL üzerinde çalışır (Testcontainers). H2 kullanılmadı: kısmi indeks, `TIMESTAMPTZ` davranışı ve kısıt hata kodları farklı olduğu için H2'de yeşil olup üretimde patlayan test üretme riski var.
 
@@ -313,7 +338,7 @@ Her birinin gerekçesi ve reddedilen alternatifi [docs/decisions.md](docs/decisi
 │   ├── web/             controller, hata yönetimi, korelasyon kimliği
 │   └── config/          JPA auditing, OpenAPI, demo verisi
 ├── src/main/resources/db/migration/   Flyway şema dosyaları
-├── src/test/java/       159 test (mimari kuralları dahil)
+├── src/test/java/       182 test (mimari kuralları dahil)
 ├── frontend/            React + TypeScript + Vite
 ├── scripts/yuk-testi.mjs
 ├── docs/

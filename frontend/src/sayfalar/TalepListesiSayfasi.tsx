@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/istemci';
 import { DurumRozeti } from '../bilesenler/DurumRozeti';
-import { DURUM_ETIKETLERI, TUR_ETIKETLERI } from '../api/tipler';
+import { DURUM_ETIKETLERI, TUR_ETIKETLERI, tutarBicimle } from '../api/tipler';
 import type { SayfaYaniti, TalepDurumu, TalepOzeti } from '../api/tipler';
 import { useOturum } from '../kimlik/useOturum';
 
@@ -97,6 +97,7 @@ export function TalepListesiSayfasi() {
             <tr>
               <th>Başlık</th>
               <th>Tür</th>
+              <th>Tutar</th>
               <th>Talep eden</th>
               <th>Birim</th>
               <th>Durum</th>
@@ -111,6 +112,9 @@ export function TalepListesiSayfasi() {
                   <Link to={`/talepler/${talep.id}`}>{talep.baslik}</Link>
                 </td>
                 <td data-etiket="Tür">{TUR_ETIKETLERI[talep.tur]}</td>
+                <td data-etiket="Tutar" className="tutar">
+                  {tutarBicimle(talep.tutar)}
+                </td>
                 <td data-etiket="Talep eden">{talep.talepEdenAdSoyad}</td>
                 <td data-etiket="Birim">{talep.birimKodu}</td>
                 <td data-etiket="Durum">

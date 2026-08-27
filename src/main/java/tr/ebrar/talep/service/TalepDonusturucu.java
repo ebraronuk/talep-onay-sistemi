@@ -43,6 +43,7 @@ final class TalepDonusturucu {
                 talep.getBaslik(),
                 talep.getTur(),
                 talep.getDurum(),
+                talep.getTutar(),
                 talep.getTalepEden().getAdSoyad(),
                 talep.getBirim().getKod(),
                 talep.getOlusturmaTarihi());
@@ -55,6 +56,7 @@ final class TalepDonusturucu {
                 talep.getAciklama(),
                 talep.getTur(),
                 talep.getDurum(),
+                talep.getTutar(),
                 kullaniciOzeti(talep.getTalepEden()),
                 talep.getBirim().getKod(),
                 talep.getBirim().getAd(),

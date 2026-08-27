@@ -75,7 +75,12 @@ class TalepControllerTest {
     private tr.ebrar.talep.security.JwtKimlikFiltresi jwtKimlikFiltresi;
 
     private static final TalepDetayDto ORNEK_DETAY = new TalepDetayDto(
-            7L, "Ergonomik sandalye", "Bel agrisi nedeniyle", TalepTuru.DONANIM, TalepDurumu.TASLAK,
+            7L,
+            "Ergonomik sandalye",
+            "Bel agrisi nedeniyle",
+            TalepTuru.DONANIM,
+            TalepDurumu.TASLAK,
+            null,
             new KullaniciOzetDto(1L, "ayse", "Ayse Yilmaz", Rol.PERSONEL, "BTGM"),
             "BTGM", "Bilgi Teknolojileri", Instant.now(), Instant.now(), List.of());
 
@@ -88,7 +93,7 @@ class TalepControllerTest {
                         .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonYazici.writeValueAsString(
-                                new TalepOlusturKomutu("Ergonomik sandalye", "Bel agrisi nedeniyle", TalepTuru.DONANIM))))
+                                new TalepOlusturKomutu("Ergonomik sandalye", "Bel agrisi nedeniyle", TalepTuru.DONANIM, null))))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/v1/talepler/7"))
                 .andExpect(jsonPath("$.id").value(7))
@@ -215,8 +220,15 @@ class TalepControllerTest {
     @Test
     @DisplayName("Listeleme kendi sayfa sozlesmemizi doner, Spring'in Page'ini degil")
     void listelemeSayfaSozlesmesi() throws Exception {
-        var icerik = List.of(new TalepOzetDto(1L, "Ilk talep", TalepTuru.IZIN, TalepDurumu.BEKLEMEDE,
-                "Ayse Yilmaz", "BTGM", Instant.now()));
+        var icerik = List.of(new TalepOzetDto(
+                        1L,
+                        "Ilk talep",
+                        TalepTuru.IZIN,
+                        TalepDurumu.BEKLEMEDE,
+                        null,
+                        "Ayse Yilmaz",
+                        "BTGM",
+                        Instant.now()));
         when(talepServisi.listele(any(), any(), anyString()))
                 .thenReturn(new PageImpl<>(icerik, PageRequest.of(0, 20), 1));
 

@@ -20,4 +20,7 @@ public interface KullaniciRepository extends JpaRepository<Kullanici, Long> {
 
     /** Bir birimdeki belirli roldeki kullanicilar; bildirim alicisini bulmak icin. */
     List<Kullanici> findByBirimIdAndRolAndAktifTrue(Long birimId, Rol rol);
+
+    /** Kurum genelindeki aktif kullanicilar; ikinci kademe onay bildirimi icin. */
+    List<Kullanici> findByRolAndAktifTrue(Rol rol);
 }

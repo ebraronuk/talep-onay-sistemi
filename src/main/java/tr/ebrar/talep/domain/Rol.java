@@ -11,7 +11,10 @@ public enum Rol {
     /** Kendi biriminin bekleyen taleplerini onaylar veya reddeder. */
     AMIR,
 
-    /** Tum birimleri goruntuler ve rapor alir; onay veremez. */
+    /**
+     * Tum birimleri goruntuler ve rapor alir. Tutar limitini asan taleplerde
+     * (bkz. OnayAyarlari) ikinci kademe onayi verir; birinci kademeye karisamaz.
+     */
     YONETICI;
 
     /** Spring Security yetki adi bicimi: ROLE_ oneki ile. */

@@ -14,7 +14,7 @@ Kurumsal bir talep ve onay iş akışı yönetir:
 2. Talep, personelin bağlı olduğu birimin amirine düşer.
 3. Amir talebi onaylar veya reddeder; her iki durumda da gerekçe yazabilir.
 4. Her durum değişikliği kalıcı bir onay kaydına (denetim izi) yazılır ve silinemez.
-5. Yönetici rolü, birim bazında talepleri listeler ve özet raporu görür.
+5. Yönetici rolü, birim bazında talepleri listeler ve özet raporu görür. Talep tutarı yapılandırılabilir bir limiti aşıyorsa, birim amirinin onayından sonra ikinci kademe onayı da yönetici verir.
 6. Kimlik doğrulama JWT ile yapılır, yetkilendirme rol bazlıdır.
 
 ### Sistem ne YAPMAYACAK
@@ -22,7 +22,7 @@ Kurumsal bir talep ve onay iş akışı yönetir:
 Aşağıdakiler bilinçli olarak kapsam dışıdır. "İleride lazım olur" gerekçesiyle hiçbiri eklenmeyecek:
 
 - Çok kiracılı (multi-tenant) yapı. Tek kurum varsayımı geçerli.
-- Dinamik / kullanıcı tanımlı onay akışı motoru. Akış sabit ve tek kademelidir.
+- Dinamik / kullanıcı tanımlı onay akışı motoru. Kademe sayısı sabit (en fazla iki) ve kademeye düşme kuralı (tutar limiti) koddan/yapılandırmadan gelir; kullanıcı yeni bir onay adımı tanımlayamaz.
 - Dosya eki yükleme ve saklama.
 - E-posta veya SMS gönderimi. Bildirim yalnızca uygulama içi kayıttır.
 - Soft delete ve kayıt versiyonlama. Denetim izi zaten `onay_kaydi` tablosunda tutulur.
@@ -36,7 +36,7 @@ Aşağıdakiler bilinçli olarak kapsam dışıdır. "İleride lazım olur" gere
 |---|---|
 | `PERSONEL` | Kendi talebini oluşturur, görür, onaya gönderir. Başkasının talebini göremez. |
 | `AMIR` | Kendi biriminin bekleyen taleplerini görür, onaylar veya reddeder. |
-| `YONETICI` | Tüm birimlerin taleplerini görür, özet raporu alır. Onay veremez. |
+| `YONETICI` | Tüm birimlerin taleplerini görür, özet raporu alır. Tutar limitini aşan taleplerde birim amirinden sonra ikinci kademe onayı verir; birinci kademeye karışamaz. |
 
 ---
 
@@ -248,3 +248,17 @@ Sıranın sabitlenmesi asıl çözüm değil, hatayı tekrar üretilebilir yapan
 **Gerekçe.** Mutasyon testi test paketini onlarca kez çalıştırıyor; her derlemede koşturmak dakikalar ekler. Eşik koymamanın sebebi ise skorun anlamlı kısmının sınıf bazında olması: basit getter'lardaki hayatta kalan mutasyonlar için test yazmak skoru süsler, hiçbir şey kanıtlamaz.
 
 **Ne kazandırdı.** İlk çalıştırmada gerçek bir test boşluğu buldu: `TalepServisi.guncelle` metodundan açıklama güncellemesini silmek hiçbir testi kırmıyordu. Detay `docs/performans.md` bölüm 6.
+
+---
+
+## K-020: Onay yetkisi tutara göre iki kademeli, sabit ve yapılandırma bazlı
+
+**Karar.** Talebe bir `tutar` alanı eklendi. Bu alan doluysa ve yapılandırılabilir bir limiti (`talep.onay.yonetici-limiti`) aşıyorsa, birim amirinin onayından sonra talep `ONAYLANDI` yerine yeni bir ara duruma (`YONETICI_ONAYINDA`) geçer ve ikinci kademede yalnızca `YONETICI` rolü karar verebilir. Limit koda gömülmedi; `OnayAyarlari` adlı bir `@ConfigurationProperties` record'u üzerinden ortam değişkeniyle (`ONAY_YONETICI_LIMITI`) verilir.
+
+**Gerekçe.** Gerçek kurumsal onay akışlarında yetki çoğunlukla tutara bağlıdır: birim amiri belli bir limite kadar tek başına onaylayabilir, üstünü daha üst bir makam onaylar. Bunu koda sabit bir sayı olarak gömmek yerine yapılandırmaya taşımanın sebebi, kurumun limiti değiştiğinde kodun değişmemesi, yeniden derlenmemesi ve yeniden test edilmemesi gerekliliği: bu bir iş kuralı parametresi, teknik bir sabit değil.
+
+**Reddedilen alternatif 1.** Genel amaçlı, kullanıcı tanımlı onay akışı motoru (kaç kademe olacağını, hangi rolün onaylayacağını çalışma zamanında yapılandırma). Reddedildi çünkü kapsam sabit iki kademe; dinamik bir motorun getirdiği karmaşıklığın karşılığı yok (bkz. K-008'in aynı gerekçesi, durum makinesi için).
+
+**Reddedilen alternatif 2.** Onay zincirini rol hiyerarşisiyle ifade etmek (`AMIR` her zaman ilk, `YONETICI` her zaman ikinci onaylayıcı, tutardan bağımsız). Reddedildi çünkü bu, tutarı düşük taleplerde de yöneticiyi işin içine sokar; personelin izin talebi gibi parasal karşılığı olmayan taleplerde gereksiz bir kademe eklenmiş olurdu. Kademeye düşüp düşmeme kararının kendisi de tutara bağlı olmalı.
+
+**Doğrulanan davranış.** Kademe geçişinin kayıt bazlı yetki kısmı (`kararVerebilirMi`) durum makinesinin yakalayamayacağı bir ihlali önlüyor: `YONETICI_ONAYINDA -> ONAYLANDI` geçişi durum makinesi açısından geçerli, ama bu geçişi bir `AMIR`'ın yapması geçersiz. Kanıt: `TalepServisiTest.IkiKademeliOnay.amirIkinciKademeyeKarisamaz`, `IkiKademeliOnayAkisiTest.ikinciKademeyeAmirKarisamaz`.

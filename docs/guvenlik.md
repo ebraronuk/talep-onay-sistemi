@@ -31,7 +31,7 @@ Aşağıdaki tablo `RequestMappingHandlerMapping` üzerinden okunan gerçek uç 
 | GET | `/api/v1/talepler/{id}` | Gerekir | Tüm roller | `PERSONEL`: sahibi olmalı · `AMIR`: kendi birimi · `YONETICI`: hepsi |
 | PUT | `/api/v1/talepler/{id}` | Gerekir | `PERSONEL` | Sahibi olmalı **ve** talep `TASLAK` durumunda olmalı |
 | POST | `/api/v1/talepler/{id}/onaya-gonder` | Gerekir | `PERSONEL` | Sahibi olmalı |
-| POST | `/api/v1/talepler/{id}/karar` | Gerekir | `AMIR` | Aynı birim olmalı **ve** kendi talebi olmamalı |
+| POST | `/api/v1/talepler/{id}/karar` | Gerekir | `AMIR`, `YONETICI` | Kademeye göre daralır (aşağıya bakın) **ve** kendi talebi olmamalı |
 | GET | `/api/v1/raporlar/ozet` | Gerekir | `YONETICI` | - |
 | GET | `/api/v1/bildirimler` | Gerekir | Tüm roller | Sadece kendi bildirimleri |
 | GET | `/api/v1/bildirimler/okunmamis-sayisi` | Gerekir | Tüm roller | Sadece kendi |
@@ -49,6 +49,17 @@ Aşağıdaki tablo `RequestMappingHandlerMapping` üzerinden okunan gerçek uç 
 | `YONETICI` | Tüm birimler; `birimId` parametresiyle daraltabilir |
 
 Kritik nokta: `PERSONEL` ve `AMIR` için kapsam **oturumdan** geliyor, istemciden gelen `birimId` parametresi yok sayılıyor. Sayılsaydı personel `?birimId=1` göndererek başkalarının taleplerini listeleyebilirdi. Bunu doğrulayan test: `personelBirimFiltresiyleKacamaz`.
+
+### `/karar` ucu tutara göre iki kademeli
+
+Talep tutarı yapılandırılabilir bir limiti (`talep.onay.yonetici-limiti`) aşıyorsa, `BEKLEMEDE` durumundaki talebi `AMIR` onayladığında talep doğrudan `ONAYLANDI`'ya değil `YONETICI_ONAYINDA`'ya geçer; ikinci kademede yalnızca `YONETICI` karar verebilir.
+
+| Talebin durumu | Kimin karar verebileceği | Kimin veremeyeceği |
+|---|---|---|
+| `BEKLEMEDE` | `AMIR` (kendi birimi) | `YONETICI` — birinci kademeyi atlayamaz |
+| `YONETICI_ONAYINDA` | `YONETICI` | `AMIR` — kendi onayladığı talebin ikinci kademesine karışamaz |
+
+Bu kural `@PreAuthorize`'ın yakalayamayacağı bir kayıt bazlı kontrol: her iki rol de `/karar` ucuna erişebilir, ama hangi **durumdaki** talebe karar verebileceği role ve talebin o anki durumuna birlikte bakılarak belirlenir. `YONETICI_ONAYINDA -> ONAYLANDI` geçişinin kendisi durum makinesi açısından geçerli; geçersiz olan, o geçişi `AMIR`'ın yapması. Kanıt: `TalepServisiTest.IkiKademeliOnay` ve `IkiKademeliOnayAkisiTest`.
 
 ---
 
@@ -83,6 +94,8 @@ Bunlar birbirinin yerine geçmez. Yalnızca birincisi olsaydı, herhangi bir ami
 | `GuvenlikEntegrasyonTest` | 30 | Gerçek filtre zinciriyle her rolün erişebildiği ve erişemediği uçlar |
 | `UcKorumaTest` | 2 | Uygulamanın kendi uç listesi okunup her biri token'sız deneniyor; kasıtlı açık uçlar dışında hepsi 401 dönmeli |
 | `TalepServisiTest` (Yetki bölümü) | 8 | Kayıt bazlı kuralların birim testi |
+| `TalepServisiTest` (İkiKademeliOnay bölümü) | 9 | Tutar limitine göre kademe seçimi ve kademe ihlalleri |
+| `IkiKademeliOnayAkisiTest` | 4 | İki kademenin HTTP'den denetim izine uçtan uca doğrulanması |
 | `TalepControllerTest` | 13 | Hata sözleşmesi ve HTTP kodları |
 
 `UcKorumaTest` özellikle önemli: elle yazılan testler yalnızca bildiğimiz uçları korur. Yarın biri yeni bir controller metodu ekleyip güvenlik kuralını yazmayı unutursa, o testler hâlâ yeşil kalır ama `UcKorumaTest` kırmızıya döner.
@@ -98,6 +111,8 @@ Bunlar birbirinin yerine geçmez. Yalnızca birincisi olsaydı, herhangi bir ami
 - Personel'in `?birimId=` ile kapsam genişletmesi → sonuç değişmiyor
 - Personel'in kendi talebini onaylaması → 403
 - Amirin kendi talebini onaylaması → 400 (iş kuralı)
+- Amirin, tutar limiti nedeniyle ikinci kademeye düşmüş bir talebe karar vermeye çalışması → 403
+- Yöneticinin, henüz birim amiri onayından geçmemiş (`BEKLEMEDE`) bir talebe karar vermeye çalışması → 403
 
 ---
 

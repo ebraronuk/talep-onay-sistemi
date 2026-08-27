@@ -13,6 +13,7 @@ describe('Talep olusturma akisi', () => {
 
     await userEvent.type(screen.getByLabelText('Başlık'), 'Ergonomik sandalye');
     await userEvent.selectOptions(screen.getByLabelText('Tür'), 'DONANIM');
+    await userEvent.type(screen.getByLabelText(/Tutar/), '1500.5');
     await userEvent.type(screen.getByLabelText('Açıklama'), 'Bel agrisi nedeniyle');
     await userEvent.click(screen.getByRole('button', { name: 'Taslak olarak kaydet' }));
 
@@ -26,6 +27,28 @@ describe('Talep olusturma akisi', () => {
       baslik: 'Ergonomik sandalye',
       aciklama: 'Bel agrisi nedeniyle',
       tur: 'DONANIM',
+      tutar: 1500.5,
+    });
+  });
+
+  it('tutar bos birakilinca govdede null gonderilir', async () => {
+    oturumAc(PERSONEL);
+    const sahte = fetchSahtele({ durum: 201, govde: { id: 43 } });
+
+    ekranaBas(<YeniTalepSayfasi />);
+
+    await userEvent.type(screen.getByLabelText('Başlık'), 'Yillik izin');
+    await userEvent.selectOptions(screen.getByLabelText('Tür'), 'IZIN');
+    await userEvent.type(screen.getByLabelText('Açıklama'), '15-22 Eylul arasi');
+    await userEvent.click(screen.getByRole('button', { name: 'Taslak olarak kaydet' }));
+
+    await waitFor(() => expect(sahte).toHaveBeenCalled());
+
+    expect(JSON.parse(sahte.mock.calls[0][1].body)).toEqual({
+      baslik: 'Yillik izin',
+      aciklama: '15-22 Eylul arasi',
+      tur: 'IZIN',
+      tutar: null,
     });
   });
 

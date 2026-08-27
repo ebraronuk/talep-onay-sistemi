@@ -103,8 +103,11 @@ public class TalepController {
     }
 
     @PostMapping("/{id}/karar")
-    @PreAuthorize("hasRole('AMIR')")
-    @Operation(summary = "Amirin onay veya ret karari")
+    // Iki kademeli onay: birinci kademede AMIR, tutar limiti asildiginda ikinci
+    // kademede YONETICI karar veriyor. Rolun hangi kademede gecerli oldugu
+    // serviste kontrol ediliyor; burasi yalnizca "bu ucu kimler cagirabilir".
+    @PreAuthorize("hasAnyRole('AMIR', 'YONETICI')")
+    @Operation(summary = "Onay veya ret karari (kademeye gore amir ya da yonetici)")
     public TalepDetayDto karar(@PathVariable Long id,
                                @Valid @RequestBody OnayKarariKomutu komut,
                                Authentication kimlik) {

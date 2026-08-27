@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.OnayKaydi;
-import tr.ebrar.talep.domain.Rol;
 import tr.ebrar.talep.domain.Talep;
 import tr.ebrar.talep.domain.TalepDurumu;
 import tr.ebrar.talep.hata.GecersizIslemException;
@@ -53,25 +52,37 @@ public class TalepServisi {
     private final OnayKaydiRepository onayKaydiRepository;
     private final KullaniciRepository kullaniciRepository;
     private final ApplicationEventPublisher olaylar;
+    private final TalepOlcumleri olcumler;
+    private final OnayAyarlari onayAyarlari;
 
     public TalepServisi(TalepRepository talepRepository,
                         OnayKaydiRepository onayKaydiRepository,
                         KullaniciRepository kullaniciRepository,
-                        ApplicationEventPublisher olaylar) {
+                        ApplicationEventPublisher olaylar,
+                        TalepOlcumleri olcumler,
+                        OnayAyarlari onayAyarlari) {
         this.talepRepository = talepRepository;
         this.onayKaydiRepository = onayKaydiRepository;
         this.kullaniciRepository = kullaniciRepository;
         this.olaylar = olaylar;
+        this.olcumler = olcumler;
+        this.onayAyarlari = onayAyarlari;
     }
 
     @Transactional
     public TalepDetayDto olustur(TalepOlusturKomutu komut, String kullaniciAdi) {
         Kullanici sahip = kullaniciBul(kullaniciAdi);
 
-        Talep talep = new Talep(komut.baslik(), komut.aciklama(), komut.tur(), sahip);
+        Talep talep = new Talep(komut.baslik(), komut.aciklama(), komut.tur(), sahip, komut.tutar());
         talepRepository.save(talep);
 
-        log.info("Talep olusturuldu: id={}, tur={}, kullanici={}", talep.getId(), talep.getTur(), kullaniciAdi);
+        olcumler.olusturuldu(talep.getTur());
+        log.info(
+                "Talep olusturuldu: id={}, tur={}, tutar={}, kullanici={}",
+                talep.getId(),
+                talep.getTur(),
+                talep.getTutar(),
+                kullaniciAdi);
         return detayDto(talep);
     }
 
@@ -91,6 +102,7 @@ public class TalepServisi {
         talep.setBaslik(komut.baslik());
         talep.setAciklama(komut.aciklama());
         talep.setTur(komut.tur());
+        talep.setTutar(komut.tutar());
         // save cagirmiyoruz: talep yonetilen bir varlik, kirli kontrol (dirty checking)
         // degisikligi commit aninda kendisi UPDATE'e cevirir.
 
@@ -111,33 +123,88 @@ public class TalepServisi {
     }
 
     /**
-     * Amirin onay veya ret karari.
+     * Onay veya ret karari. Iki kademeli:
      *
-     * <p>Uc ayri kontrol var ve ucu de birbirinden farkli sey soruyor:
-     * rol dogru mu, birim dogru mu, kendi talebi mi. Ilk ikisi olmadan
-     * yetki acigi olur, ucuncusu olmadan da kimse kendi iznini kendi onaylar.
+     * <ol>
+     *   <li>Birim amiri, kendi birimindeki BEKLEMEDE talebe karar verir.
+     *   <li>Tutar limiti asiyorsa talep ONAYLANDI'ya degil YONETICI_ONAYINDA'ya
+     *       gecer ve ikinci kademede yonetici karar verir.
+     * </ol>
+     *
+     * <p>Kim hangi kademede karar verebilir sorusu {@link #kararVerebilirMi} icinde.
+     * Rolun tek basina yetmemesi onemli: AMIR rolu olan biri ikinci kademeye
+     * karisamaz, YONETICI rolu olan biri de birinci kademeye.
      */
     @Transactional
     public TalepDetayDto karar(Long talepId, OnayKarariKomutu komut, String kullaniciAdi) {
-        Kullanici amir = kullaniciBul(kullaniciAdi);
+        Kullanici islemYapan = kullaniciBul(kullaniciAdi);
         Talep talep = talepBul(talepId);
 
-        if (amir.getRol() != Rol.AMIR) {
-            throw new YetkisizIslemException("Onay islemi yalnizca birim amiri tarafindan yapilabilir");
-        }
-        if (!talep.getBirim().getId().equals(amir.getBirim().getId())) {
-            throw new YetkisizIslemException("Baska bir birimin talebi uzerinde islem yapamazsiniz");
-        }
-        if (talep.sahibiMi(amir.getId())) {
+        kararVerebilirMi(talep, islemYapan);
+
+        if (talep.sahibiMi(islemYapan.getId())) {
             throw new GecersizIslemException("Kendi talebinizi onaylayamaz veya reddedemezsiniz");
         }
-        if (komut.karar() == Karar.REDDET
-                && (komut.aciklama() == null || komut.aciklama().isBlank())) {
+        if (komut.karar() == Karar.REDDET && (komut.aciklama() == null || komut.aciklama().isBlank())) {
             throw new GecersizIslemException("Ret islemi icin gerekce yazmak zorunlu");
         }
 
-        durumDegistir(talep, komut.karar().hedefDurum(), amir, komut.aciklama());
+        durumDegistir(talep, hedefDurum(talep, komut.karar()), islemYapan, komut.aciklama());
         return detayDto(talep);
+    }
+
+    /**
+     * Karar sonrasi hangi duruma gidilecegini belirler.
+     *
+     * <p>Ret her kademede dogrudan REDDEDILDI. Onay ise yalnizca birinci kademede
+     * ve tutar limiti asildiginda ikinci kademeye gidiyor; diger tum durumlarda
+     * dogrudan ONAYLANDI.
+     */
+    private TalepDurumu hedefDurum(Talep talep, Karar karar) {
+        if (karar == Karar.REDDET) {
+            return TalepDurumu.REDDEDILDI;
+        }
+        boolean birinciKademe = talep.getDurum() == TalepDurumu.BEKLEMEDE;
+        if (birinciKademe && talep.tutarLimitiAsiyorMu(onayAyarlari.yoneticiLimiti())) {
+            return TalepDurumu.YONETICI_ONAYINDA;
+        }
+        return TalepDurumu.ONAYLANDI;
+    }
+
+    /**
+     * Kayit bazli yetki: rol, kapsam ve kademe.
+     *
+     * <p>Burada yalnizca "bu kisi bu kademede yetkili mi" sorusu var. Gecisin
+     * kendisinin gecerli olup olmadigina durum makinesi karar veriyor ve gecersizse
+     * 409 donuyor; o kontrolu burada tekrarlamiyoruz.
+     *
+     * <p>Acikca engellenen tek sey, dogru role sahip birinin <b>digerinin
+     * kademesine</b> karismasi. Bunu durum makinesi yakalayamaz, cunku
+     * YONETICI_ONAYINDA -> ONAYLANDI gecisi kendi basina gecerli bir gecis;
+     * gecersiz olan, o gecisi birim amirinin yapmasi.
+     */
+    private void kararVerebilirMi(Talep talep, Kullanici islemYapan) {
+        switch (islemYapan.getRol()) {
+            case PERSONEL ->
+                throw new YetkisizIslemException("Onay islemi yalnizca birim amiri veya yonetici tarafindan yapilabilir");
+
+            case AMIR -> {
+                if (!talep.getBirim().getId().equals(islemYapan.getBirim().getId())) {
+                    throw new YetkisizIslemException("Baska bir birimin talebi uzerinde islem yapamazsiniz");
+                }
+                if (talep.getDurum() == TalepDurumu.YONETICI_ONAYINDA) {
+                    throw new YetkisizIslemException(
+                            "Bu talep tutar limiti nedeniyle yonetici onayinda; bu asamada karar veremezsiniz");
+                }
+            }
+
+            case YONETICI -> {
+                if (talep.getDurum() == TalepDurumu.BEKLEMEDE) {
+                    throw new YetkisizIslemException(
+                            "Bu talep once birim amirinin onayindan gecmeli");
+                }
+            }
+        }
     }
 
     public TalepDetayDto detay(Long talepId, String kullaniciAdi) {

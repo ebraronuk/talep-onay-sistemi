@@ -78,6 +78,11 @@ springdoc:
     path: /v3/api-docs
 
 talep:
+  onay:
+    # Bu tutari ASAN talepler, birim amiri onayladiktan sonra yonetici onayina duser.
+    # Kurumun limiti degisince kod degismesin diye yapilandirmada.
+    yonetici-limiti: ${ONAY_YONETICI_LIMITI:50000}
+
   jwt:
     # Uretimde JWT_SECRET ortam degiskeni ZORUNLU olarak verilir.
     # Asagidaki deger yalnizca yerel gelistirme icindir ve depoda gizli veri sayilmaz.

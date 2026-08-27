@@ -1,5 +1,6 @@
 package tr.ebrar.talep.service.dto;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -12,6 +13,7 @@ public record TalepDetayDto(
         String aciklama,
         TalepTuru tur,
         TalepDurumu durum,
+        BigDecimal tutar,
         KullaniciOzetDto talepEden,
         String birimKodu,
         String birimAdi,

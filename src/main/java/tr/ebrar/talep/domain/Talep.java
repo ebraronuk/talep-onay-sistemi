@@ -1,5 +1,6 @@
 package tr.ebrar.talep.domain;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -57,6 +58,20 @@ public class Talep extends DenetimAlanlari {
     @Column(name = "aciklama", nullable = false, length = 4000)
     private String aciklama;
 
+    /**
+     * Talebin parasal tutari. Bos birakilabilir (izin talebinin tutari yok).
+     *
+     * <p>Dolu oldugunda onay kademesini belirliyor: belli bir limitin ustundeki
+     * talepler birim amirinin onayindan sonra yonetici onayina dusuyor.
+     * Limit degeri yapilandirmadan geliyor (talep.onay.yonetici-limiti), burada
+     * sabit degil; kurumun limiti degistiginde kod degismesin.
+     *
+     * <p>double degil BigDecimal: para hesabinda kayan nokta kullanmak, 0.1 + 0.2
+     * gibi ifadelerin beklenmedik sonuc vermesi demek. Kolon da NUMERIC(12,2).
+     */
+    @Column(name = "tutar", precision = 12, scale = 2)
+    private BigDecimal tutar;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "tur", nullable = false, length = 30)
     private TalepTuru tur;
@@ -87,6 +102,11 @@ public class Talep extends DenetimAlanlari {
     }
 
     public Talep(String baslik, String aciklama, TalepTuru tur, Kullanici talepEden) {
+        this(baslik, aciklama, tur, talepEden, null);
+    }
+
+    public Talep(String baslik, String aciklama, TalepTuru tur, Kullanici talepEden, BigDecimal tutar) {
+        this.tutar = tutar;
         this.baslik = baslik;
         this.aciklama = aciklama;
         this.tur = tur;
@@ -148,6 +168,24 @@ public class Talep extends DenetimAlanlari {
 
     public String getAciklama() {
         return aciklama;
+    }
+
+    public BigDecimal getTutar() {
+        return tutar;
+    }
+
+    public void setTutar(BigDecimal tutar) {
+        this.tutar = tutar;
+    }
+
+    /**
+     * Tutar verilen limiti asiyor mu.
+     *
+     * <p>Tutari olmayan talep hicbir zaman limiti asmaz; izin talebi gibi parasal
+     * karsiligi olmayan talepler tek kademede sonuclanir.
+     */
+    public boolean tutarLimitiAsiyorMu(BigDecimal limit) {
+        return tutar != null && limit != null && tutar.compareTo(limit) > 0;
     }
 
     public void setAciklama(String aciklama) {

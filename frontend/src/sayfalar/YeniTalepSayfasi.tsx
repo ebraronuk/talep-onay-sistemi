@@ -9,6 +9,7 @@ export function YeniTalepSayfasi() {
   const [baslik, setBaslik] = useState('');
   const [aciklama, setAciklama] = useState('');
   const [tur, setTur] = useState<TalepTuru>('DIGER');
+  const [tutar, setTutar] = useState('');
   const [alanHatalari, setAlanHatalari] = useState<Record<string, string>>({});
   const [hata, setHata] = useState<string | null>(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
@@ -19,7 +20,12 @@ export function YeniTalepSayfasi() {
     setAlanHatalari({});
     setGonderiliyor(true);
     try {
-      const olusan = await api.post<TalepDetayi>('/talepler', { baslik, aciklama, tur });
+      const olusan = await api.post<TalepDetayi>('/talepler', {
+        baslik,
+        aciklama,
+        tur,
+        tutar: tutar === '' ? null : Number(tutar),
+      });
       navigate(`/talepler/${olusan.id}`);
     } catch (e) {
       if (e instanceof ApiHatasi) {
@@ -52,6 +58,23 @@ export function YeniTalepSayfasi() {
             </option>
           ))}
         </select>
+
+        <label htmlFor="tutar">Tutar (opsiyonel)</label>
+        <input
+          id="tutar"
+          type="number"
+          min="0"
+          step="0.01"
+          inputMode="decimal"
+          value={tutar}
+          onChange={(e) => setTutar(e.target.value)}
+        />
+        {alanHatalari.tutar && <span className="alan-hatasi">{alanHatalari.tutar}</span>}
+        <p className="ipucu">
+          Parasal karşılığı olan taleplerde (satın alma, donanım vb.) girin. İzin gibi taleplerde
+          boş bırakın. Belirlenen limitin üzerindeki tutarlar birim amiri onayından sonra ayrıca
+          yönetici onayına düşer.
+        </p>
 
         <label htmlFor="aciklama">Açıklama</label>
         <textarea

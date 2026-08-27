@@ -21,6 +21,14 @@ export const AMIR: KullaniciOzeti = {
   birimKodu: 'BTGM',
 };
 
+export const YONETICI: KullaniciOzeti = {
+  id: 3,
+  kullaniciAdi: 'hakan.ozturk',
+  adSoyad: 'Hakan Ozturk',
+  rol: 'YONETICI',
+  birimKodu: 'BTGM',
+};
+
 /** Oturumu acikmis gibi kurar. Bileseni gercek giris akisindan gecirmeye gerek kalmiyor. */
 export function oturumAc(kullanici: KullaniciOzeti) {
   sessionStorage.setItem('talep-onay-token', 'test-token');
