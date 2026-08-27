@@ -20,6 +20,18 @@ updates:
           - "org.mockito*"
           - "com.tngtech.archunit*"
           - "org.awaitility*"
+    ignore:
+      # Spring Boot 4'e gecis bilincli olarak ertelendi; proje 3.5 LTS hattinda
+      # kaliyor (bkz. docs/decisions.md K-004). Dependabot her hafta ayni major
+      # yukseltmeyi onerdiginde acik PR listesi kirmizi kaliyor ve gercek
+      # guvenlik yamalari gurultude kayboluyor. Yama ve minor surumler gelmeye
+      # devam ediyor; yalnizca major kapali.
+      - dependency-name: "org.springframework.boot:spring-boot-starter-parent"
+        update-types: ["version-update:semver-major"]
+      # springdoc 3.x yalnizca Boot 4 ile calisiyor: Boot 3.5 uzerinde
+      # ErrorMvcAutoConfiguration bean cakismasi verip uygulamayi acmiyor.
+      - dependency-name: "org.springdoc:springdoc-openapi-starter-webmvc-ui"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: "/frontend"
@@ -50,3 +62,9 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    ignore:
+      # Calisma zamani JDK surumu derleme surumuyle ayni kalmali. Java 21'den
+      # cikilacaksa pom, CI ve Dockerfile birlikte guncellenir; Dockerfile'in
+      # tek basina ilerlemesi derleme ile calisma zamanini birbirinden ayirir.
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
