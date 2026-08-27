@@ -10,6 +10,59 @@ Spring Boot 3.5 · Java 21 · PostgreSQL 16 · Spring Security (JWT) · React + 
 
 ---
 
+<details>
+<summary><b>🇬🇧 In English</b></summary>
+
+<br/>
+
+**Corporate Request & Approval System.** An employee opens a request, their unit
+manager approves or rejects it, every status change is written to an audit trail
+that cannot be modified, the relevant person is notified, and an executive sees
+the summary report.
+
+The documentation is in Turkish because the domain language is Turkish and the
+project targets Turkish public-sector and financial institutions. The code
+follows the same convention: business-domain names are Turkish (`Talep`,
+`OnayKaydi`), framework concepts stay English (`Repository`, `Service`,
+`Controller`). The reasoning is written up in `docs/decisions.md` (K-007).
+
+**What makes it worth a look:**
+
+- **Two-stage approval driven by amount thresholds.** A unit manager approves up
+  to a configurable limit; anything above goes to executive approval. Neither
+  role can act on the other's stage, and that rule is not something the state
+  machine can catch on its own, so it is enforced and tested separately.
+- **An audit trail that is immutable at the database level**, not just in Java.
+  A PostgreSQL trigger rejects `UPDATE` and `DELETE` on the audit table. The
+  claim was true for the code but false for the system until that trigger existed.
+- **Optimistic locking.** Two managers deciding on the same request at the same
+  moment cannot silently overwrite each other; the second one gets a 409.
+- **Measured, not asserted.** Every performance number in the docs comes from a
+  real run: N+1 query counts before and after (11 queries down to 1),
+  `EXPLAIN ANALYZE` output on 50,000 rows, p95 latency under 50 concurrent
+  requests (64 ms read, 91 ms write).
+- **Layer rules enforced as tests.** ArchUnit checks that the domain knows
+  nothing about HTTP, that controllers never touch repositories, and that no
+  package cycles exist. Those tests found two real circular dependencies on the
+  day they were written, in code that compiled and passed every other test.
+- **A guard against forgotten security.** One test reads the application's own
+  endpoint list at runtime and calls each one without a token. A new controller
+  method with no authorization rule turns it red.
+- **Mutation testing.** Line coverage says a line ran, not that it ran
+  correctly. The first mutation run scored 43% and found a genuine gap: deleting
+  a field update from the service broke no test. After fixing it, business-logic
+  classes sit between 92% and 100%.
+
+**Run it:** `docker compose up --build`, then open http://localhost:3000 and sign
+in as `ayse.yilmaz` / `Parola123!`. Swagger is at http://localhost:8080/swagger-ui.html.
+
+**Stack:** Spring Boot 3.5 · Java 21 · PostgreSQL 16 · Spring Security (JWT) ·
+Flyway · Testcontainers · React + TypeScript · Docker · GitHub Actions
+
+</details>
+
+---
+
 ## Beş dakikada ayağa kaldırma
 
 Tek gereksinim Docker.
