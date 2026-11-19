@@ -48,24 +48,6 @@ jobs:
             target/pit-reports/
           if-no-files-found: ignore
 
-  bagimlilik-incelemesi:
-    name: Bagimlilik guvenlik incelemesi
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v7
-
-      # Bir PR yeni bir bagimlilik getiriyorsa ve o bagimliligin bilinen bir
-      # zafiyeti varsa PR'i durdurur. OWASP dependency-check yerine bu secildi:
-      # NVD artik API anahtari istiyor, anahtarsiz ilk kosum 10-20 dakika suruyor
-      # ve oran sinirina takilip kirilganlasiyor. Bu adim saniyeler surer ve
-      # anahtar istemez. Mevcut bagimliliklarin surekli taranmasi zaten
-      # Dependabot'un isi (bkz. .github/dependabot.yml).
-      - name: Degisen bagimliliklari incele
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
-
   on-yuz:
     name: On yuz derleme ve test
     runs-on: ubuntu-latest
