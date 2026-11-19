@@ -362,6 +362,15 @@
                 <param>XML</param>
               </outputFormats>
               <timestampedReports>false</timestampedReports>
+              <!-- Esiksiz mutasyon testi rapor uretir, kapi kurmaz: kimse bakmazsa
+                   skor sessizce duser.
+                   Esik PROJE GENELI skora uygulaniyor, sinif bazlisina degil.
+                   Olculen genel skor %75,2 (docs/performans.md bolum 6) ve bu
+                   bilerek asagida tutuluyor: hayatta kalan mutasyonlarin cogu
+                   basit getter'larda ve onlar icin test yazmak skoru susler,
+                   bir sey kanitlamaz. Esik bu gercek sayinin hemen altinda,
+                   gurultuye pay birakacak kadar. -->
+              <mutationThreshold>72</mutationThreshold>
             </configuration>
             <dependencies>
               <dependency>

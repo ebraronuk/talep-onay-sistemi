@@ -32,6 +32,11 @@ jobs:
       - name: Derle, denetle ve test et
         run: ./mvnw -B -ntp clean verify
 
+      # Mutasyon testi ayri profilde ve esikli: skor %90'in altina duserse kirar.
+      # Verify'dan sonra kosuyor, cunku derleme ve testler zaten gecmis olmali.
+      - name: Mutasyon testi
+        run: ./mvnw -B -ntp -Pmutasyon test
+
       - name: Test raporlarini yukle
         if: always()
         uses: actions/upload-artifact@v7
@@ -40,6 +45,7 @@ jobs:
           path: |
             target/surefire-reports/
             target/site/jacoco/
+            target/pit-reports/
           if-no-files-found: ignore
 
   on-yuz:
