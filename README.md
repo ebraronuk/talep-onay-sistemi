@@ -14,7 +14,7 @@ aşağıdaki fazda derlemeyi ya da PR'ı durduruyor:
 | Spotless biçim denetimi | ihlal varsa kırar | `validate` |
 | JaCoCo satır kapsamı | %80 / %85 | `verify` |
 | ArchUnit katman kuralları | ihlal varsa kırar | test |
-| Mutasyon skoru (`-Pmutasyon`) | %90 | ayrı CI adımı |
+| Mutasyon skoru (`-Pmutasyon`) | %72 proje geneli | ayrı CI adımı |
 | Bağımlılık güvenlik incelemesi | `high` ve üstü PR'ı durdurur | PR |
 
 **202 test yeşil** (182 arka uç, 20 ön yüz). Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
@@ -62,8 +62,8 @@ follows the same convention: business-domain names are Turkish (`Talep`,
 - **Mutation testing.** Line coverage says a line ran, not that it ran
   correctly. The first mutation run scored 43% and found a genuine gap: deleting
   a field update from the service broke no test. After fixing it, business-logic
-  classes sit between 92% and 100%, and CI now fails the build if the score
-  drops below 90.
+  classes sit between 92% and 100%, and CI now fails the build if the
+  project-wide score drops below 72.
 
 **Run it:** `docker compose up --build`, then open http://localhost:3000 and sign
 in as `ayse.yilmaz` / `Parola123!`. Swagger is at http://localhost:8080/swagger-ui.html.
