@@ -362,6 +362,11 @@
                 <param>XML</param>
               </outputFormats>
               <timestampedReports>false</timestampedReports>
+              <!-- Esiksiz mutasyon testi rapor uretir, kapi kurmaz: kimse bakmazsa
+                   skor sessizce duser. Hedeflenen is mantigi siniflarinda olculen
+                   skor %92-100 (bkz. docs/performans.md bolum 6), esik onun altina
+                   dusmeyi derleme hatasina cevirecek kadar yakin secildi. -->
+              <mutationThreshold>90</mutationThreshold>
             </configuration>
             <dependencies>
               <dependency>

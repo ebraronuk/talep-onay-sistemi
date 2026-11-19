@@ -32,6 +32,11 @@ jobs:
       - name: Derle, denetle ve test et
         run: ./mvnw -B -ntp clean verify
 
+      # Mutasyon testi ayri profilde ve esikli: skor %90'in altina duserse kirar.
+      # Verify'dan sonra kosuyor, cunku derleme ve testler zaten gecmis olmali.
+      - name: Mutasyon testi
+        run: ./mvnw -B -ntp -Pmutasyon test
+
       - name: Test raporlarini yukle
         if: always()
         uses: actions/upload-artifact@v7
@@ -40,7 +45,26 @@ jobs:
           path: |
             target/surefire-reports/
             target/site/jacoco/
+            target/pit-reports/
           if-no-files-found: ignore
+
+  bagimlilik-incelemesi:
+    name: Bagimlilik guvenlik incelemesi
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v7
+
+      # Bir PR yeni bir bagimlilik getiriyorsa ve o bagimliligin bilinen bir
+      # zafiyeti varsa PR'i durdurur. OWASP dependency-check yerine bu secildi:
+      # NVD artik API anahtari istiyor, anahtarsiz ilk kosum 10-20 dakika suruyor
+      # ve oran sinirina takilip kirilganlasiyor. Bu adim saniyeler surer ve
+      # anahtar istemez. Mevcut bagimliliklarin surekli taranmasi zaten
+      # Dependabot'un isi (bkz. .github/dependabot.yml).
+      - name: Degisen bagimliliklari incele
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
 
   on-yuz:
     name: On yuz derleme ve test
