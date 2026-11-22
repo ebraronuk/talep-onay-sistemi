@@ -86,3 +86,15 @@ jobs:
       # komutunun en azindan derleme asamasi kirilmasin diye.
       - name: Imajlari derle
         run: docker compose build
+
+      # nginx yapilandirmasi ve guvenlik basliklari gercekten ulasiyor mu.
+      # 'uygulama' adi proxy_pass'te cozumlenebilmeli, yoksa nginx acilmaz.
+      - name: On yuz basliklarini dogrula
+        run: |
+          docker build -t on-yuz-test frontend
+          docker run -d --name on-yuz --add-host uygulama:127.0.0.1 -p 8081:80 on-yuz-test
+          sleep 3
+          curl -sSI http://localhost:8081/ | tee basliklar.txt
+          grep -qi '^content-security-policy:' basliklar.txt
+          grep -qi '^x-content-type-options: nosniff' basliklar.txt
+          grep -qi '^x-frame-options: DENY' basliklar.txt

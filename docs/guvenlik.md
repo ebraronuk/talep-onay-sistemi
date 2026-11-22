@@ -123,7 +123,7 @@ Bu proje bir mülakat/portföy projesi; gerçek bir kuruma konulacaksa şunlar y
 1. `JWT_SECRET` gizli yönetim sisteminden (Vault, AWS Secrets Manager, Kubernetes Secret) gelmeli. `application.yml` içindeki varsayılan yalnızca yerel geliştirme içindir.
 2. Swagger uçları kapatılmalı: `springdoc.api-docs.enabled=false`.
 3. CORS listesi gerçek alan adıyla değiştirilmeli; ters vekil arkasında aynı kaynak kullanılıyorsa liste boşaltılmalı.
-4. HTTPS zorunlu hale getirilmeli (uygulama önündeki katmanda).
+4. HTTPS zorunlu hale getirilmeli (uygulama önündeki katmanda) ve aynı katmanda `Strict-Transport-Security` başlığı eklenmeli.
 5. Uygulama birden fazla kopya halinde çalışacaksa giriş denemelerinin hız sınırlaması yük dengeleyiciye veya paylaşımlı bir sayaca taşınmalı. Mevcut sayaç tek kopya için yeterli, kopyalar arasında paylaşılmıyor (bkz. bölüm 7).
 
 ---
@@ -172,5 +172,7 @@ Testler: `DenetimIziKorumasiTest` (3 test). Testler JPA'yı baypas edip doğruda
 | Sağlık detayı | Gizli | Bileşen adları ve bağlantı bilgisi sızmasın |
 | Flyway `clean` | Devre dışı | Şema temizleme komutu kazara çalıştırılamasın |
 | Log seviyesi | `root: WARN` | Gürültü azalır, gerçek hata görünür |
+
+Ön yüz imajındaki nginx, SPA yanıtlarına CSP (`default-src 'self'`, dış kaynak yok), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy` ve `Permissions-Policy` ekler. Başlıklar yalnızca `location /` içinde: `/api` yanıtlarında Spring Security'nin kendi başlıkları var, Swagger arayüzü satır içi betik kullandığı için bu CSP ile çalışmaz. CI'da konteyner ayağa kaldırılıp başlıkların geldiği kontrol edilir.
 
 Ek olarak `UretimYapilandirmaDenetimi` açılışta çalışıyor: depodaki varsayılan JWT anahtarıyla üretim profilinde başlatılmaya çalışılırsa uygulama **hata verip durur**. Uyarı değil hata, çünkü uyarı log'da kaybolur; yanlış yapılandırmayla ayakta duran bir sistem, ayakta olmayan sistemden kötüdür.
