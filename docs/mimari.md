@@ -223,7 +223,7 @@ Kanıt: `TalepServisiTransactionTest.esZamanliGuncellemeIkincisiCakisir`.
    │         │  Transaction / bildirim (8)  rollback, commit sonrası olay
    ├─────────┤
    │         │  Repository (26)             gerçek PostgreSQL, N+1, tembel yükleme
-   │         │  HTTP katmanı (19)           status kodları, hata sözleşmesi
+   │         │  HTTP katmanı (20)           status kodları, hata sözleşmesi
    ├─────────┤
    │         │  Saf birim (60)              durum makinesi (iki kademe dahil), servis + Mockito
    │         │  Mimari (10)                 ArchUnit katman kuralları

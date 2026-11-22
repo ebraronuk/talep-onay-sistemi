@@ -15,9 +15,9 @@ aşağıdaki aşamada derlemeyi ya da PR'ı durduruyor:
 | JaCoCo satır kapsamı | %80 / %85 | `verify` |
 | ArchUnit katman kuralları | ihlal varsa kırar | test |
 | Mutasyon skoru (`-Pmutasyon`) | %72 proje geneli | ayrı CI adımı |
-| Ön yüz satır kapsamı | %80 taban (ölçülen %84) | `npm run test:kapsam` |
+| Ön yüz satır kapsamı | %95 taban (ölçülen %97) | `npm run test:kapsam` |
 
-**219 test yeşil** (182 arka uç, 37 ön yüz). Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
+**232 test yeşil** (183 arka uç, 49 ön yüz). Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
 
 ---
 
@@ -317,8 +317,8 @@ node scripts/yuk-testi.mjs
 ## Testler
 
 ```bash
-./mvnw clean verify          # arka uç: 182 test + biçim denetimi + kapsam eşiği
-cd frontend && npm test      # ön yüz: 37 test
+./mvnw clean verify          # arka uç: 183 test + biçim denetimi + kapsam eşiği
+cd frontend && npm test      # ön yüz: 49 test
 ```
 
 Testler gerçek PostgreSQL üzerinde çalışır (Testcontainers). H2 kullanılmadı: kısmi indeks, `TIMESTAMPTZ` davranışı ve kısıt hata kodları farklı olduğu için H2'de yeşil olup üretimde patlayan test üretme riski var. Dağılım ve strateji: [docs/mimari.md](docs/mimari.md) bölüm 7.
@@ -357,7 +357,7 @@ Bilinçli olarak yok: mikroservis, mesaj kuyruğu, Redis, iş akışı motoru, R
 │   ├── web/             controller, hata yönetimi, korelasyon kimliği
 │   └── config/          JPA auditing, OpenAPI, demo verisi
 ├── src/main/resources/db/migration/   Flyway şema dosyaları
-├── src/test/java/       182 test (mimari kuralları dahil)
+├── src/test/java/       183 test (mimari kuralları dahil)
 ├── frontend/            React + TypeScript + Vite
 ├── scripts/yuk-testi.mjs
 ├── docs/
