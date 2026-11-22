@@ -32,7 +32,7 @@ jobs:
       - name: Derle, denetle ve test et
         run: ./mvnw -B -ntp clean verify
 
-      # Mutasyon testi ayri profilde ve esikli: skor %90'in altina duserse kirar.
+      # Mutasyon testi ayri profilde ve esikli: skor %72'nin altina duserse kirar.
       # Verify'dan sonra kosuyor, cunku derleme ve testler zaten gecmis olmali.
       - name: Mutasyon testi
         run: ./mvnw -B -ntp -Pmutasyon test
