@@ -6,7 +6,7 @@ Bu dosyadaki her sayı gerçek bir çalıştırmadan alınmıştır. Tahmin veya
 
 ---
 
-## 1. Faz 1: Listeleme sorgusu indeks kullanıyor mu
+## 1. Listeleme sorgusu indeks kullanıyor mu
 
 **Soru.** Amir ekranındaki "bu birimin bekleyen talepleri" sorgusu 50.000 kayıtta sequential scan yapıyor mu?
 
@@ -84,7 +84,7 @@ Kabul kriteri (sequential scan olmayacak) **sağlandı**. Sorgu, `ix_talep_durum
 
 ---
 
-## 2. Faz 3: N+1 sorgu problemi, önce ve sonra
+## 2. N+1 sorgu problemi, önce ve sonra
 
 **Soru.** 10 talep ilişkileriyle listelendiğinde kaç SQL deyimi çalışıyor?
 
@@ -116,7 +116,7 @@ N+1 OLCUMU (Specification+fetch): yukleme=2 (icerik + count), ek sorgu=0
 
 ---
 
-## 3. Faz 3: 1000 kayıtta sayfalı listeleme süresi
+## 3. 1000 kayıtta sayfalı listeleme süresi
 
 **Kabul kriteri.** 1000 kayıtta 20'lik sayfa 200 ms altında dönmeli.
 
@@ -138,7 +138,7 @@ Sınırın 100 katı altında kalınması sürpriz değil: sorgu `ix_talep_durum
 
 ---
 
-## 4. Faz 4: Test kapsamı (JaCoCo)
+## 4. Test kapsamı (JaCoCo)
 
 `./mvnw clean verify` çıktısındaki `target/site/jacoco/jacoco.csv` dosyasından, paket bazında satır kapsamı:
 
@@ -169,7 +169,7 @@ Kabul kriteri servis katmanı için %70 idi, %96,5 ile sağlandı.
 
 ---
 
-## 5. Faz 9: Uçtan uca yük testi
+## 5. Uçtan uca yük testi
 
 **Kabul kriteri.** Okuma p95 < 200 ms, yazma p95 < 400 ms, 50 eşzamanlı istek altında hatasız.
 
