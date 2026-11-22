@@ -25,9 +25,9 @@ export default defineConfig({
       // yoksa hic test edilmeyen sayfalar rakami sisirir.
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.test.*', 'src/test/**', 'src/main.tsx', 'src/**/*.d.ts'],
-      // Esikler olculen gercek degerin hemen altinda (ilk olcum: satir %62,
-      // dal %49). Hedef degil, gerilemeye karsi taban.
-      thresholds: { lines: 60, statements: 57, branches: 47, functions: 52 },
+      // Esikler olculen degerin hemen altinda (satir %84, dal %76, fonksiyon %77).
+      // Hedef degil, gerilemeye karsi taban.
+      thresholds: { lines: 80, statements: 78, branches: 73, functions: 73 },
     },
   },
 });
