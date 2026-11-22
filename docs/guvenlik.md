@@ -12,7 +12,7 @@ Bu dosya iki soruya cevap verir: **her uç kime açık** ve **bu nasıl kanıtla
 - Sunucu tarafında oturum yok (`SessionCreationPolicy.STATELESS`).
 - Şifreler BCrypt ile saklanır (güç 10, her kayıtta rastgele tuz).
 
-**Bilinen ödün:** token sunucudan anında iptal edilemez. Bir kullanıcı pasife alınsa bile elindeki token süresi dolana kadar geçerli kalır. Anında iptal, her istekte kara liste sorgusu demek olurdu; bu da stateless olmaktan vazgeçmek anlamına gelir. 60 dakikalık ömür ile kabul edildi.
+**Bilinen ödün:** token sunucudan anında iptal edilemez. Bir kullanıcı pasife alınsa bile elindeki token süresi dolana kadar geçerli kalır. Anında iptal, her istekte kara liste sorgusu demek olurdu; bu da stateless olmaktan vazgeçmek anlamına gelir. 60 dakikalık ömür ile kabul edildi. Refresh token yok: süre dolunca kullanıcı yeniden giriş yapar. Refresh token eklemek ikinci bir saklama ve iptal mekanizması demek; tek kurumlu, kısa oturumlu bu kapsam için karşılığı yok.
 
 **CSRF koruması kapalı.** Bu bilinçli: CSRF saldırısı tarayıcının çerezi otomatik göndermesine dayanır. Bu API çerez kullanmıyor, token'ı JavaScript açıkça başlığa koyuyor. Çerez tabanlı bir oturuma geçilirse CSRF koruması geri açılmalıdır.
 
