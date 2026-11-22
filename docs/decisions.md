@@ -116,9 +116,9 @@ Aşağıdakiler bilinçli olarak kapsam dışıdır. "İleride lazım olur" gere
 
 **Karar.** Talep durumları `TalepDurumu` enum'u ile modellenir. İzin verilen geçişler enum içinde tanımlanır; geçersiz geçiş `GecersizDurumGecisiException` fırlatır.
 
-**Gerekçe.** Toplam dört durum ve dört geçiş var. Bu, tek bir enum ve bir `Set` ile eksiksiz ifade edilebilir ve tek bakışta okunabilir.
+**Gerekçe.** Toplam beş durum ve altı geçiş var. Bu, tek bir enum ve bir `Set` ile eksiksiz ifade edilebilir ve tek bakışta okunabilir.
 
-**Reddedilen alternatif.** Spring State Machine veya Camunda. Reddedildi çünkü dört geçişlik bir kural için XML/DSL yapılandırması, ayrı bir çalışma zamanı ve yeni bir kavram seti getirir. "Bunu silsek ne kaybederiz" sorusunun cevabı: hiçbir şey.
+**Reddedilen alternatif.** Spring State Machine veya Camunda. Reddedildi çünkü altı geçişlik bir kural için XML/DSL yapılandırması, ayrı bir çalışma zamanı ve yeni bir kavram seti getirir. "Bunu silsek ne kaybederiz" sorusunun cevabı: hiçbir şey.
 
 ---
 
@@ -130,7 +130,7 @@ Aşağıdakiler bilinçli olarak kapsam dışıdır. "İleride lazım olur" gere
 
 **Reddedilen alternatif.** Elle yazılmış `U<versiyon>__...sql` geri alma dosyaları. Reddedildi çünkü test edilmeyen geri alma betiği, olmayan geri alma betiğinden daha tehlikelidir; kriz anında ilk kez çalıştırılır ve genellikle patlar.
 
-**Doğrulanan davranış.** `./mvnw flyway:clean` ile şema tamamen boşaltılıp `./mvnw flyway:migrate` yeniden çalıştırıldığında üç migration sıfırdan hatasız uygulanıyor. Bu, migration'ların idempotent bir başlangıç noktasından tekrar üretilebilir olduğunu gösteriyor.
+**Doğrulanan davranış.** `./mvnw flyway:clean` ile şema tamamen boşaltılıp `./mvnw flyway:migrate` yeniden çalıştırıldığında tüm migration'lar sıfırdan hatasız uygulanıyor. Bu, migration'ların idempotent bir başlangıç noktasından tekrar üretilebilir olduğunu gösteriyor.
 
 ---
 
@@ -241,11 +241,11 @@ Sıranın sabitlenmesi asıl çözüm değil, hatayı tekrar üretilebilir yapan
 
 ---
 
-## K-019: Mutasyon testi ayrı profilde, kapı olarak değil ölçüm olarak
+## K-019: Mutasyon testi ayrı profilde, eşik ölçülen skorun hemen altında
 
-**Karar.** PIT (pitest) `mutasyon` profiliyle çalışıyor, normal derlemeye dahil değil ve bir eşiği yok.
+**Karar.** PIT (pitest) `mutasyon` profiliyle çalışıyor, normal derlemeye (`verify`) dahil değil; CI'da ayrı adım olarak koşuyor ve proje geneli skor %72'nin altına düşerse kırıyor.
 
-**Gerekçe.** Mutasyon testi test paketini onlarca kez çalıştırıyor; her derlemede koşturmak dakikalar ekler. Eşik koymamanın sebebi ise skorun anlamlı kısmının sınıf bazında olması: basit getter'lardaki hayatta kalan mutasyonlar için test yazmak skoru süsler, hiçbir şey kanıtlamaz.
+**Gerekçe.** Mutasyon testi test paketini onlarca kez çalıştırıyor; her derlemede koşturmak dakikalar ekler, o yüzden ayrı profil. Eşiksiz rapor ise kimse bakmazsa skorun sessizce düşmesi demek. Eşik ölçülen gerçek skorun (%75,2) hemen altında tutuldu: yüksek bir hedef koymak, basit getter'lardaki hayatta kalan mutasyonlar için test yazmayı zorlar ve bu skoru süsler, hiçbir şey kanıtlamaz.
 
 **Ne kazandırdı.** İlk çalıştırmada gerçek bir test boşluğu buldu: `TalepServisi.guncelle` metodundan açıklama güncellemesini silmek hiçbir testi kırmıyordu. Detay `docs/performans.md` bölüm 6.
 
