@@ -76,6 +76,14 @@ jobs:
       - name: Uretim derlemesi
         run: npm run build
 
+      # Ilk yukleme butcesi. Su an ~77 KB gzip; kod bolunmeden eklenen agir bir
+      # bagimlilik ya da sayfa bunu asarsa derleme kirilir.
+      - name: Paket boyutu butcesi (JS < 120 KB gzip)
+        run: |
+          boyut=$(cat dist/assets/*.js | gzip -9 | wc -c)
+          echo "JS toplam gzip: $boyut bayt"
+          test "$boyut" -lt 122880
+
   docker:
     name: Docker imajlari derleniyor mu
     runs-on: ubuntu-latest
