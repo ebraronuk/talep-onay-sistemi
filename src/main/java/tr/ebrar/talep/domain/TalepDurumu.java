@@ -22,9 +22,8 @@ import java.util.Set;
  * olmadigi tanimli.
  *
  * <p>ONAYLANDI ve REDDEDILDI nihai durumlardir; bu durumlardan cikis yoktur.
- * Izin verilen gecisler burada, tek bir yerde tanimlidir. Servis katmani gecis
- * kontrolunu {@link #gecebilirMi(TalepDurumu)} uzerinden yapar, kendi kurallarini
- * yeniden yazmaz (bkz. docs/decisions.md K-008).
+ * Servis katmani gecis kontrolunu {@link #gecebilirMi(TalepDurumu)} uzerinden
+ * yapar, kendi kurallarini yeniden yazmaz (bkz. docs/decisions.md K-008).
  */
 public enum TalepDurumu {
 
