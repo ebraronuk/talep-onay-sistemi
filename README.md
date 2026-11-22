@@ -15,6 +15,7 @@ aşağıdaki aşamada derlemeyi ya da PR'ı durduruyor:
 | JaCoCo satır kapsamı | %80 / %85 | `verify` |
 | ArchUnit katman kuralları | ihlal varsa kırar | test |
 | Mutasyon skoru (`-Pmutasyon`) | %72 proje geneli | ayrı CI adımı |
+| Ön yüz satır kapsamı | %60 taban (ölçülen %62) | `npm run test:kapsam` |
 
 **202 test yeşil** (182 arka uç, 20 ön yüz). Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
 
