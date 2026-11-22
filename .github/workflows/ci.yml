@@ -70,8 +70,19 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Testleri calistir
-        run: npm test
+      - name: Testleri calistir (kapsam tabani ile)
+        run: npm run test:kapsam
 
       - name: Uretim derlemesi
         run: npm run build
+
+  docker:
+    name: Docker imajlari derleniyor mu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Yalnizca derler, calistirmaz: README'deki "docker compose up --build"
+      # komutunun en azindan derleme asamasi kirilmasin diye.
+      - name: Imajlari derle
+        run: docker compose build
