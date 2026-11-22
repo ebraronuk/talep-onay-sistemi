@@ -430,4 +430,4 @@ Her birinin gerekçesi ve reddedilen alternatifi [docs/decisions.md](docs/decisi
 
 ## Üretime çıkarken
 
-Bu bir portföy projesi. Gerçek bir kuruma konulacaksa yapılacaklar [docs/guvenlik.md](docs/guvenlik.md) sonunda maddeler halinde: gizli anahtar yönetimi, Swagger'ın kapatılması, CORS listesinin daraltılması, HTTPS zorunluluğu, giriş denemelerine hız sınırlama.
+Bu bir portföy projesi. Gerçek bir kuruma konulacaksa yapılacaklar [docs/guvenlik.md](docs/guvenlik.md) sonunda maddeler halinde: gizli anahtar yönetimi, Swagger'ın kapatılması, CORS listesinin daraltılması, HTTPS zorunluluğu. Giriş denemelerine kullanıcı bazlı sınır zaten var; yalnızca birden fazla kopya çalışacaksa paylaşımlı hale getirilmesi gerekir.
