@@ -132,8 +132,6 @@ public class TalepServisi {
      * </ol>
      *
      * <p>Kim hangi kademede karar verebilir sorusu {@link #kararVerebilirMi} icinde.
-     * Rolun tek basina yetmemesi onemli: AMIR rolu olan biri ikinci kademeye
-     * karisamaz, YONETICI rolu olan biri de birinci kademeye.
      */
     @Transactional
     public TalepDetayDto karar(Long talepId, OnayKarariKomutu komut, String kullaniciAdi) {
@@ -153,13 +151,6 @@ public class TalepServisi {
         return detayDto(talep);
     }
 
-    /**
-     * Karar sonrasi hangi duruma gidilecegini belirler.
-     *
-     * <p>Ret her kademede dogrudan REDDEDILDI. Onay ise yalnizca birinci kademede
-     * ve tutar limiti asildiginda ikinci kademeye gidiyor; diger tum durumlarda
-     * dogrudan ONAYLANDI.
-     */
     private TalepDurumu hedefDurum(Talep talep, Karar karar) {
         if (karar == Karar.REDDET) {
             return TalepDurumu.REDDEDILDI;
