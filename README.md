@@ -7,9 +7,9 @@ Personel talep açar, birim amiri onaylar veya reddeder, her durum değişikliğ
 Spring Boot 3.5 · Java 21 · PostgreSQL 16 · Spring Security (JWT) · React + TypeScript · Docker · GitHub Actions
 
 **Derlemeyi kıran kapılar.** Hiçbiri yalnızca rapor üretmiyor; her biri
-aşağıdaki fazda derlemeyi ya da PR'ı durduruyor:
+aşağıdaki aşamada derlemeyi ya da PR'ı durduruyor:
 
-| Kapı | Eşik | Faz |
+| Kapı | Eşik | Aşama |
 |---|---|---|
 | Spotless biçim denetimi | ihlal varsa kırar | `validate` |
 | JaCoCo satır kapsamı | %80 / %85 | `verify` |
@@ -318,23 +318,7 @@ node scripts/yuk-testi.mjs
 cd frontend && npm test      # ön yüz: 20 test
 ```
 
-| Tür | Adet | Ne kanıtlıyor |
-|---|---|---|
-| Saf birim (Spring yok) | 60 | Durum makinesi (iki kademe dahil) ve iş kuralları |
-| Mimari (ArchUnit) | 10 | Katman kuralları yorum değil, test |
-| Repository (gerçek PostgreSQL) | 26 | Sorgular, tembel yükleme, kısıtlar, N+1 |
-| HTTP katmanı (`@WebMvcTest`) | 13 | Status kodları, doğrulama |
-| Hata sözleşmesi | 6 | Çerçeve hataları da aynı gövdeyi döner |
-| Güvenlik entegrasyonu | 33 | Gerçek filtre zinciriyle her rol × her uç |
-| İki kademeli onay (uçtan uca) | 4 | Tutar limitine göre ikinci kademeye düşme; HTTP'den denetim izine |
-| Transaction, kilitleme, bildirim | 8 | Rollback, iyimser kilit, commit sonrası olay |
-| Korelasyon kimliği | 4 | İstek izlenebilirliği |
-| Performans bekçisi | 1 | Sayfalama regresyona düşerse test kırılır |
-| Denetim izi koruması | 3 | Trigger, SQL ile bile değişikliğe izin vermiyor |
-| Varlık kimliği | 12 | `equals`/`hashCode` sözleşmesi, beş varlık için |
-| Ön yüz (Vitest) | 20 | Giriş, talep oluşturma, iki kademeli onaylama akışları |
-
-Testler gerçek PostgreSQL üzerinde çalışır (Testcontainers). H2 kullanılmadı: kısmi indeks, `TIMESTAMPTZ` davranışı ve kısıt hata kodları farklı olduğu için H2'de yeşil olup üretimde patlayan test üretme riski var.
+Testler gerçek PostgreSQL üzerinde çalışır (Testcontainers). H2 kullanılmadı: kısmi indeks, `TIMESTAMPTZ` davranışı ve kısıt hata kodları farklı olduğu için H2'de yeşil olup üretimde patlayan test üretme riski var. Dağılım ve strateji: [docs/mimari.md](docs/mimari.md) bölüm 7.
 
 Üç test özellikle bekçi görevinde:
 
@@ -342,51 +326,19 @@ Testler gerçek PostgreSQL üzerinde çalışır (Testcontainers). H2 kullanılm
 - **`MimariKurallariTest`** katman kurallarını ArchUnit ile zorlar. Yazıldığı gün iki gerçek döngüsel bağımlılık yakaladı; ikisi de derlenen, testleri geçen koddu.
 - **`TalepListelemePerformansTest`** `@EntityGraph` kaldırılırsa ya da indeks düşerse süre sınırını aştığı için kırılır.
 
-### Derlemeyi kıran diğer kurallar
-
-| Kural | Araç | Eşik |
-|---|---|---|
-| Biçim ve kullanılmayan import | Spotless | ihlal varsa `validate` fazında kırılır |
-| Satır kapsamı, proje geneli | JaCoCo | %80 |
-| Satır kapsamı, servis paketi | JaCoCo | %85 |
-| Ön yüz lint | oxlint | uyarı toleransı sıfır |
-
-Yerelde biçim düzeltmek için: `./mvnw spotless:apply`
-
-**Mutasyon testi** ayrı profilde: `./mvnw -Pmutasyon test`. Satır kapsamı "bu satır çalıştı" der, "doğru çalıştı" demez. İlk çalıştırma gerçek bir test boşluğu buldu; detay [docs/performans.md](docs/performans.md) bölüm 6.
+Yerelde biçim düzeltmek için `./mvnw spotless:apply`. Mutasyon testi ayrı profilde (`./mvnw -Pmutasyon test`): satır kapsamı "bu satır çalıştı" der, "doğru çalıştı" demez. İlk çalıştırma gerçek bir test boşluğu buldu; detay [docs/performans.md](docs/performans.md) bölüm 6.
 
 ---
 
 ## Güvenlik
 
-Uçların tam yetki tablosu, sızdırmama kuralları ve doğrulanan saldırı senaryoları: [docs/guvenlik.md](docs/guvenlik.md)
-
-Özet:
-
-- Kimlik doğrulama imzalı JWT ile, sunucuda oturum tutulmaz.
-- Yetkilendirme iki kademeli: controller'da rol (`@PreAuthorize`), serviste kayıt bazlı ("bu talep senin mi, senin biriminde mi").
-- Şifreler BCrypt ile saklanır; JWT anahtarının uzunluğu açılışta doğrulanır.
-- Kullanıcı adının sistemde kayıtlı olup olmadığı ne hata mesajından ne de yanıt süresinden anlaşılır.
-- Doğrulanan senaryolar arasında en kritiği: **başka bir anahtarla imzalanmış, rolü `YONETICI` yazan token 401 alır.**
+Yetki tablosu, sızdırmama kuralları ve doğrulanan saldırı senaryoları: [docs/guvenlik.md](docs/guvenlik.md). En kritik senaryo: başka bir anahtarla imzalanmış, rolü `YONETICI` yazan token 401 alır.
 
 ---
 
 ## Kapsam dışı bırakılanlar
 
-Bu liste kasıtlı ve dokümante. "İleride lazım olur" diye eklenen hiçbir şey yok:
-
-| Ne yok | Neden yok |
-|---|---|
-| Mikroservisler | Tek tutarlılık sınırı var, tek transaction yetiyor |
-| Kafka / RabbitMQ | Bildirim yan etki, uygulama içi olay yeterli |
-| Redis | Stateless JWT, paylaşılacak oturum yok |
-| Spring State Machine / Camunda | Dört durum, dört geçiş; bir enum yeterli |
-| Redux | Paylaşılan tek durum "kim giriş yapmış"; Context yeterli |
-| Soft delete, versiyonlama tablosu | Denetim izi zaten `onay_kaydi` tablosunda |
-| Çok kiracılı yapı | Tek kurum varsayımı |
-| Dosya eki, e-posta, SMS | Kapsam dışı |
-
-Her birinin gerekçesi ve reddedilen alternatifi [docs/decisions.md](docs/decisions.md) içinde on üç karar başlığı altında yazılı.
+Bilinçli olarak yok: mikroservis, mesaj kuyruğu, Redis, iş akışı motoru, Redux, soft delete, çok kiracılı yapı, dosya eki, e-posta/SMS. Her birinin gerekçesi ve reddedilen alternatifi [docs/decisions.md](docs/decisions.md) içinde (Kapsam bölümü ve K-001 ... K-020).
 
 ---
 
