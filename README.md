@@ -92,6 +92,8 @@ Hazır olduğunda:
 | http://localhost:8080/swagger-ui.html | API dokümanı, uçlar buradan denenebilir |
 | http://localhost:8080/actuator/health | Sağlık kontrolü |
 
+Parola ve JWT anahtarını değiştirmek için `.env.example` dosyasını `.env` olarak kopyalayıp düzenleyin; dosya yoksa compose'taki yerel geliştirme varsayılanları kullanılır.
+
 Ön yüzü ayrıca çalıştırmak için:
 
 ```bash
