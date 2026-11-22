@@ -124,7 +124,7 @@ Bu proje bir mülakat/portföy projesi; gerçek bir kuruma konulacaksa şunlar y
 2. Swagger uçları kapatılmalı: `springdoc.api-docs.enabled=false`.
 3. CORS listesi gerçek alan adıyla değiştirilmeli; ters vekil arkasında aynı kaynak kullanılıyorsa liste boşaltılmalı.
 4. HTTPS zorunlu hale getirilmeli (uygulama önündeki katmanda).
-5. Başarısız giriş denemeleri için hız sınırlama (rate limiting) eklenmeli. Şu an yok ve bu bilinçli bir eksiklik: kapsam dışı bırakıldı.
+5. Uygulama birden fazla kopya halinde çalışacaksa giriş denemelerinin hız sınırlaması yük dengeleyiciye veya paylaşımlı bir sayaca taşınmalı. Mevcut sayaç tek kopya için yeterli, kopyalar arasında paylaşılmıyor (bkz. bölüm 7).
 
 ---
 
