@@ -1,9 +1,11 @@
 package tr.ebrar.talep.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -17,6 +19,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -24,6 +27,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -241,6 +245,21 @@ class TalepControllerTest {
                 .andExpect(jsonPath("$.toplamKayit").value(1))
                 .andExpect(jsonPath("$.sonSayfaMi").value(true))
                 .andExpect(jsonPath("$.pageable").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("Cok buyuk sayfa boyutu istenirse servise en fazla 100 kayitlik sayfa gider")
+    void sayfaBoyutuUstSiniriVar() throws Exception {
+        when(talepServisi.listele(any(), any(), anyString()))
+                .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 100), 0));
+
+        mockMvc.perform(get("/api/v1/talepler?size=100000")
+                        .principal(SahteKimlik.olarak("ayse", Rol.PERSONEL)))
+                .andExpect(status().isOk());
+
+        var yakalayici = ArgumentCaptor.forClass(Pageable.class);
+        verify(talepServisi).listele(any(), yakalayici.capture(), anyString());
+        assertThat(yakalayici.getValue().getPageSize()).isEqualTo(100);
     }
 
     @Test
