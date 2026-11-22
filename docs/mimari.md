@@ -219,7 +219,9 @@ Kanıt: `TalepServisiTransactionTest.esZamanliGuncellemeIkincisiCakisir`.
 ```
         ▲  az sayıda, yavaş, gerçekçi
         │
-   ┌────┴────┐  Güvenlik entegrasyonu (33)  gerçek filtre zinciri + gerçek PostgreSQL
+   ┌────┴────┐  Uçtan uca (2)               Playwright, docker compose ile gerçek yığın
+   ├─────────┤
+   │         │  Güvenlik entegrasyonu (33)  gerçek filtre zinciri + gerçek PostgreSQL
    │         │  Transaction / bildirim (8)  rollback, commit sonrası olay
    ├─────────┤
    │         │  Repository (26)             gerçek PostgreSQL, N+1, tembel yükleme
