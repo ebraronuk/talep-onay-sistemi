@@ -84,25 +84,51 @@ jobs:
           echo "JS toplam gzip: $boyut bayt"
           test "$boyut" -lt 122880
 
-  docker:
-    name: Docker imajlari derleniyor mu
+  uctan-uca:
+    name: Uctan uca (docker compose + Playwright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      # Yalnizca derler, calistirmaz: README'deki "docker compose up --build"
-      # komutunun en azindan derleme asamasi kirilmasin diye.
-      - name: Imajlari derle
-        run: docker compose build
+      # README'deki tek komutla kurulan yiginin aynisi: veritabani, arka uc, on yuz.
+      # --wait saglik kontrolleri yesile donene kadar bekler.
+      - name: Yigini ayaga kaldir
+        run: docker compose up --build -d --wait
 
-      # nginx yapilandirmasi ve guvenlik basliklari gercekten ulasiyor mu.
-      # 'uygulama' adi proxy_pass'te cozumlenebilmeli, yoksa nginx acilmaz.
-      - name: On yuz basliklarini dogrula
+      - name: On yuz guvenlik basliklarini dogrula
         run: |
-          docker build -t on-yuz-test frontend
-          docker run -d --name on-yuz --add-host uygulama:127.0.0.1 -p 8081:80 on-yuz-test
-          sleep 3
-          curl -sSI http://localhost:8081/ | tee basliklar.txt
+          curl -sSI http://localhost:3000/ | tee basliklar.txt
           grep -qi '^content-security-policy:' basliklar.txt
           grep -qi '^x-content-type-options: nosniff' basliklar.txt
           grep -qi '^x-frame-options: DENY' basliklar.txt
+
+      - name: Node kur
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Playwright kur
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Uctan uca testler
+        working-directory: frontend
+        run: npm run e2e
+
+      - name: Konteyner loglari
+        if: failure()
+        run: docker compose logs --no-color --tail=200
+
+      - name: Playwright raporunu yukle
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-raporu
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: ignore
