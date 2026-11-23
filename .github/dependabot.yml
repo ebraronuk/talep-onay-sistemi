@@ -45,9 +45,12 @@ updates:
           - "react"
           - "react-dom"
           - "react-router-dom"
+      # @vitest/coverage-v8 vitest ile ayni surumu ister; ayri PR'da kalirsa
+      # biri yukselip digeri geride kalinca npm ci peer cakismasindan patlar.
       test-araclari:
         patterns:
           - "vitest"
+          - "@vitest/*"
           - "@testing-library/*"
           - "jsdom"
 
