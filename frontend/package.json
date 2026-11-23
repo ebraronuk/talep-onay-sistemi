@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:kapsam": "vitest run --coverage",
+    "e2e": "playwright test",
     "test:izle": "vitest",
     "onizleme": "vite preview"
   },
@@ -19,6 +20,7 @@
     "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.6",
@@ -27,6 +29,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.0",
     "@vitest/coverage-v8": "^4.1.12",
+    "axe-core": "^4.14.1",
     "jsdom": "^30.0.1",
     "oxlint": "^1.81.0",
     "typescript": "~7.0.2",

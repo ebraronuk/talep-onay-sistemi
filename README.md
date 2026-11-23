@@ -15,9 +15,10 @@ aşağıdaki aşamada derlemeyi ya da PR'ı durduruyor:
 | JaCoCo satır kapsamı | %80 / %85 | `verify` |
 | ArchUnit katman kuralları | ihlal varsa kırar | test |
 | Mutasyon skoru (`-Pmutasyon`) | %72 proje geneli | ayrı CI adımı |
-| Ön yüz satır kapsamı | %80 taban (ölçülen %84) | `npm run test:kapsam` |
+| Ön yüz satır kapsamı | %95 taban (ölçülen %97) | `npm run test:kapsam` |
+| Uçtan uca (Playwright) | 2 senaryo, yeniden deneme yok | CI'da `docker compose` ile gerçek yığın |
 
-**219 test yeşil** (182 arka uç, 37 ön yüz). Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
+**232 test yeşil** (183 arka uç, 49 ön yüz), üstüne gerçek yığına karşı 2 uçtan uca senaryo. Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
 
 ---
 
@@ -317,8 +318,9 @@ node scripts/yuk-testi.mjs
 ## Testler
 
 ```bash
-./mvnw clean verify          # arka uç: 182 test + biçim denetimi + kapsam eşiği
-cd frontend && npm test      # ön yüz: 37 test
+./mvnw clean verify          # arka uç: 183 test + biçim denetimi + kapsam eşiği
+cd frontend && npm test      # ön yüz: 49 test
+cd frontend && npm run e2e   # uçtan uca: önce docker compose up --build
 ```
 
 Testler gerçek PostgreSQL üzerinde çalışır (Testcontainers). H2 kullanılmadı: kısmi indeks, `TIMESTAMPTZ` davranışı ve kısıt hata kodları farklı olduğu için H2'de yeşil olup üretimde patlayan test üretme riski var. Dağılım ve strateji: [docs/mimari.md](docs/mimari.md) bölüm 7.
@@ -341,7 +343,7 @@ Yetki tablosu, sızdırmama kuralları ve doğrulanan saldırı senaryoları: [d
 
 ## Kapsam dışı bırakılanlar
 
-Bilinçli olarak yok: mikroservis, mesaj kuyruğu, Redis, iş akışı motoru, Redux, soft delete, çok kiracılı yapı, dosya eki, e-posta/SMS. Her birinin gerekçesi ve reddedilen alternatifi [docs/decisions.md](docs/decisions.md) içinde (Kapsam bölümü ve K-001 ... K-020).
+Bilinçli olarak yok: mikroservis, mesaj kuyruğu, Redis, iş akışı motoru, Redux, soft delete, çok kiracılı yapı, dosya eki, e-posta/SMS. Her birinin gerekçesi ve reddedilen alternatifi [docs/decisions.md](docs/decisions.md) içinde (Kapsam bölümü ve K-001 ... K-021).
 
 ---
 
@@ -357,7 +359,7 @@ Bilinçli olarak yok: mikroservis, mesaj kuyruğu, Redis, iş akışı motoru, R
 │   ├── web/             controller, hata yönetimi, korelasyon kimliği
 │   └── config/          JPA auditing, OpenAPI, demo verisi
 ├── src/main/resources/db/migration/   Flyway şema dosyaları
-├── src/test/java/       182 test (mimari kuralları dahil)
+├── src/test/java/       183 test (mimari kuralları dahil)
 ├── frontend/            React + TypeScript + Vite
 ├── scripts/yuk-testi.mjs
 ├── docs/
@@ -376,6 +378,7 @@ Bilinçli olarak yok: mikroservis, mesaj kuyruğu, Redis, iş akışı motoru, R
 - `/actuator/health` ve `/actuator/info` açık; diğer actuator uçları `YONETICI` rolüne kapalı.
 - Her isteğe korelasyon kimliği takılır, `X-Korelasyon-Kimligi` başlığıyla geri döner ve tüm log satırlarına yazılır. İstemci kendi kimliğini gönderirse o korunur, böylece ön yüz ve arka uç logları eşleşir.
 - Şifre ve token hiçbir log satırına yazılmaz.
+- Hata takibi, alarm ve dağıtık izleme yok; neden yok ve üretimde ne eklenir: [K-021](docs/decisions.md).
 
 ```
 2026-08-26 22:42:54.011  INFO [8de086d1] tr.ebrar.talep.service.TalepServisi : Talep durumu degisti: id=7, BEKLEMEDE -> ONAYLANDI, islem yapan=ali.vural

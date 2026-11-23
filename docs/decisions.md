@@ -262,3 +262,15 @@ Sıranın sabitlenmesi asıl çözüm değil, hatayı tekrar üretilebilir yapan
 **Reddedilen alternatif 2.** Onay zincirini rol hiyerarşisiyle ifade etmek (`AMIR` her zaman ilk, `YONETICI` her zaman ikinci onaylayıcı, tutardan bağımsız). Reddedildi çünkü bu, tutarı düşük taleplerde de yöneticiyi işin içine sokar; personelin izin talebi gibi parasal karşılığı olmayan taleplerde gereksiz bir kademe eklenmiş olurdu. Kademeye düşüp düşmeme kararının kendisi de tutara bağlı olmalı.
 
 **Doğrulanan davranış.** Kademe geçişinin kayıt bazlı yetki kısmı (`kararVerebilirMi`) durum makinesinin yakalayamayacağı bir ihlali önlüyor: `YONETICI_ONAYINDA -> ONAYLANDI` geçişi durum makinesi açısından geçerli, ama bu geçişi bir `AMIR`'ın yapması geçersiz. Kanıt: `TalepServisiTest.IkiKademeliOnay.amirIkinciKademeyeKarisamaz`, `IkiKademeliOnayAkisiTest.ikinciKademeyeAmirKarisamaz`.
+
+---
+
+## K-021: Hata takibi, alarm ve dağıtık izleme eklenmedi
+
+**Karar.** Sentry benzeri bir hata takip aracı, alarm altyapısı ve OpenTelemetry eklenmedi. Uygulamada korelasyon kimlikli log, Micrometer iş metrikleri (K-018) ve sağlık probe'ları var.
+
+**Gerekçe.** Uygulama tek dağıtım birimi ve tek veritabanından oluşuyor; dağıtık izlemenin çözdüğü servisler arası iz sürme sorunu burada yok. Hata takibi ve alarm, sürekli çalışan bir ortam ve onu izleyen bir ekip ister. Bu kurulumda ikisi de yok. Eklenseydi yapılandırılmış ama hiç tetiklenmeyen bir bileşen olurdu.
+
+**Üretime çıkarken.** Arka uca ve ön yüze kurumun kullandığı hata takip aracı eklenir, korelasyon kimliği olaya etiket olarak geçer. `metrics` ucu Prometheus'a açılır; 5xx oranı ve `talep.karar.suresi` için alarm kurulur. Log toplayan bir yığın varsa logback encoder'ı JSON'a çevrilir. Servis sayısı birden fazla olursa OpenTelemetry eklenir.
+
+**Reddedilen alternatif.** `docker-compose.yml`'e Prometheus ve Grafana eklemek. Reddedildi: izlenecek gerçek trafik yok. Ekran görüntüsünde iyi durur ama bir şey kanıtlamaz, kurulum süresini ve README'yi büyütür.
