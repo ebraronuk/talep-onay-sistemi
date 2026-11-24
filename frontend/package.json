@@ -12,7 +12,8 @@
     "test:kapsam": "vitest run --coverage",
     "e2e": "playwright test",
     "test:izle": "vitest",
-    "onizleme": "vite preview"
+    "onizleme": "vite preview",
+    "ekran": "node scripts/ekran-goruntuleri.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

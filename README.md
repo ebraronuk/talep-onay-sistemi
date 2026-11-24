@@ -6,6 +6,18 @@ Personel talep açar, birim amiri onaylar veya reddeder, her durum değişikliğ
 
 Spring Boot 3.5 · Java 21 · PostgreSQL 16 · Spring Security (JWT) · React + TypeScript · Docker · GitHub Actions
 
+![Tüm talepler ekranı](docs/ekranlar/talep-listesi.png)
+
+Yönetici tüm birimleri görüyor; durum rozetleri talebin akışın neresinde olduğunu söylüyor.
+
+![İkinci kademe onay ekranı](docs/ekranlar/onay-ekrani.png)
+
+Tutar limitini aşan bir talep, birim amirinin onayından sonra yöneticiye düşüyor. Altındaki onay geçmişi her durum geçişini kimin ne zaman yaptığıyla birlikte tutuyor ve bu kayıt değiştirilemiyor.
+
+![Özet rapor ekranı](docs/ekranlar/yonetici-raporu.png)
+
+Görüntüler demo profilinin tohum verisinden alındı ve `cd frontend && npm run ekran` ile yeniden üretilebiliyor.
+
 **Derlemeyi kıran kapılar.** Hiçbiri yalnızca rapor üretmiyor; her biri
 aşağıdaki aşamada derlemeyi ya da PR'ı durduruyor:
 
