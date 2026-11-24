@@ -21,7 +21,7 @@
     <jjwt.version>0.13.0</jjwt.version>
     <jacoco.version>0.8.15</jacoco.version>
     <archunit.version>1.5.1</archunit.version>
-    <pitest.version>1.30.0</pitest.version>
+    <pitest.version>1.30.2</pitest.version>
     <pitest.junit5.version>1.2.3</pitest.junit5.version>
     <spotless.version>3.11.0</spotless.version>
     <!-- ./mvnw flyway:migrate icin varsayilan yerel baglanti; -Ddb.url=... ile gecilebilir -->
