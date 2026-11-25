@@ -138,7 +138,8 @@ Abartılı isimlendirme yapmadan, gerçekten uygulanan kalıplar:
 | Repository | `repository` paketi |
 | Specification | `TalepSpecifications`; filtreler ayrı ayrı yazılıp birleştiriliyor |
 | State (durum makinesi) | `TalepDurumu` ve geçiş tablosu |
-| Observer / domain event | `TalepDurumuDegistiOlayi` + `@TransactionalEventListener` |
+| Observer / domain event | `TalepDurumuDegistiOlayi` + `@EventListener` (`GidenOlayServisi.kaydet`) |
+| Transactional outbox | `giden_olay` tablosu, `GidenOlayIsleyici` (K-023) |
 | Factory method | `TalepAramaKriteri.kendiTalepleri/birimTalepleri/tumTalepler`, `HataYaniti.of` |
 | Template method | `OncePerRequestFilter.doFilterInternal`, `ResponseEntityExceptionHandler` |
 | DTO | `service/dto` ve `service/komut` |
@@ -204,13 +205,19 @@ Spring 6 standart bir hata gövdesi sunuyor (`application/problem+json`: `type`,
 
 ## 6. Eşzamanlılık
 
-Tek bir eşzamanlılık senaryosu var ve ele alınmış: **iki amir aynı talebe aynı anda karar verirse ne olur.**
+İki eşzamanlılık senaryosu var.
+
+**İki amir aynı talebe aynı anda karar verirse ne olur.**
 
 `Talep` varlığında `@Version` kolonu var (iyimser kilitleme). Hibernate her `UPDATE`'e `where surum = ?` ekliyor; eskimiş sürümle gelen ikinci işlem sıfır satır güncelliyor ve `OptimisticLockingFailureException` fırlatıyor. API bunu 409 `ES_ZAMANLI_DEGISIKLIK` olarak dönüyor.
 
 Kötümser kilit (`SELECT FOR UPDATE`) yerine iyimser seçildi: çakışma nadir, kilit tutmanın maliyeti ise her istekte ödeniyor.
 
 Kanıt: `TalepServisiTransactionTest.esZamanliGuncellemeIkincisiCakisir`.
+
+**İki olay işleyicisi aynı olayı aynı anda görürse ne olur.** Burada tercih tersine: `FOR UPDATE SKIP LOCKED` ile kötümser kilit. Çakışan işleyicinin yapacak bir işi yok, beklemesinin de anlamı yok; kilitli satırı atlayıp sıradakine geçiyor. Dağıtım sırasında eski ve yeni kopya kısa süre birlikte çalıştığında aynı bildirimin iki kez yazılmasını bu engelliyor (K-023).
+
+Kanıt: `GidenOlayIsleyiciTest.esZamanliIsleyicilerTekBildirimUretir`, `kilitliOlayAtlanir`.
 
 ---
 
@@ -222,12 +229,12 @@ Kanıt: `TalepServisiTransactionTest.esZamanliGuncellemeIkincisiCakisir`.
    ┌────┴────┐  Uçtan uca (2)               Playwright, docker compose ile gerçek yığın
    ├─────────┤
    │         │  Güvenlik entegrasyonu (33)  gerçek filtre zinciri + gerçek PostgreSQL
-   │         │  Transaction / bildirim (8)  rollback, commit sonrası olay
+   │         │  Transaction / olay (23)     rollback, olay kutusu, yeniden deneme, bildirim
    ├─────────┤
-   │         │  Repository (26)             gerçek PostgreSQL, N+1, tembel yükleme
+   │         │  Repository (30)             gerçek PostgreSQL, N+1, tembel yükleme
    │         │  HTTP katmanı (20)           status kodları, hata sözleşmesi
    ├─────────┤
-   │         │  Saf birim (60)              durum makinesi (iki kademe dahil), servis + Mockito
+   │         │  Saf birim (65)              durum makinesi (iki kademe dahil), giden olay, servis + Mockito
    │         │  Mimari (10)                 ArchUnit katman kuralları
    └─────────┘
         │
@@ -272,6 +279,6 @@ Dürüst cevap: **önce ölçerdim.** Mevcut sayılara göre uygulama katmanınd
 1. Veritabanı bağlantı havuzu ve sorgu planlarını gerçek yük altında izlemek.
 2. Raporlama sorgularını okuma replikasına yönlendirmek.
 3. Denetim tablosunu tarihe göre bölümlemek (partition), çünkü tek büyüyen tablo o.
-4. Bildirim dinleyicisini kuyruk tüketicisine çevirmek. Bugün bunu yapmak kolay, çünkü olay zaten yayınlanıyor; servis katmanına dokunmadan değişir.
+4. Olay işleyicisinin bildirimi yazmak yerine kuyruğa yayın yapması. Olaylar zaten kutuda kalıcı (K-023); onayı veren koda dokunmadan değişir.
 
 Mikroservise bölmek bu listede yok. Tek tutarlılık sınırı olan bir sistemi bölmek, ölçek problemi çözmez, dağıtık transaction problemi yaratır.

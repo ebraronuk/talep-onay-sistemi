@@ -156,6 +156,8 @@ Aşağıdakiler bilinçli olarak kapsam dışıdır. "İleride lazım olur" gere
 
 **Kanıt.** `TalepServisiTransactionTest.rollbackOlanIslemdeBildirimYok` ve `commitSonrasiBildirimYazilir`.
 
+**Güncelleme.** Karar ve gerekçesi geçerli, yazım yöntemi K-023 ile değişti: `AFTER_COMMIT` dinleyicisi yerine olay kutusu. Hata artık dinleyicide yutulup loglanmıyor, olay kutuda kalıp yeniden deneniyor.
+
 ---
 
 ## K-012: Ön yüzde token `sessionStorage`'da tutulur
@@ -287,3 +289,39 @@ Sıranın sabitlenmesi asıl çözüm değil, hatayı tekrar üretilebilir yapan
 
 **Reddedilen alternatif.** Filtreye `isAktif()` kontrolü eklemek. Reddedildi: sorunu çözüyor ama her isteğe sorgu maliyeti bindiriyor ve token'ın durumsuzluğunu ortadan kaldırıyor. Ölçülmemiş bir gereksinim için ödenen bu bedel yerine sınırı yazıya geçirmek dürüst olan.
 
+---
+
+## K-023: Bildirim olayı, durum değişikliğiyle aynı transaction'da yazılır (outbox)
+
+**Karar.** Talep durumu değiştiğinde olay, talep ve denetim kaydıyla aynı transaction içinde `giden_olay` tablosuna yazılır. `@Scheduled` bir işleyici bekleyen olayları okur, bildirimi yazar ve olayı aynı transaction'da işlendi olarak işaretler. K-011'in `AFTER_COMMIT` dinleyicisi kalktı; K-011'in kararı, yani bildirimin onayı geri sarmaması, geçerli.
+
+**Gerekçe.** `AFTER_COMMIT` dinleyicisi olayı yalnızca bellekte taşıyordu. Commit ile bildirim yazımı arasında uygulama kapanırsa (dağıtım, bellek yetersizliği, makine arızası) bildirim kayboluyordu. Üstelik iz bırakmadan: ortada hata olmadığı için log satırı da yoktu. Onay akışında bunun karşılığı, amirin haberi olmadığı için bekleyip kalan bir talep. Olay artık durum değişikliğiyle birlikte kalıcı; uygulama ne zaman kapanırsa kapansın açılışta kutudan devam ediyor.
+
+Bildirim de aynı veritabanına yazıldığı için "işlendi" işaretiyle birlikte commit oluyor. Olay yeniden denense bile alıcı ikinci bildirimi almıyor. Alıcı dış bir sistem olsaydı bu garanti "en az bir kez"e düşerdi ve karşı tarafta tekilleştirme gerekirdi.
+
+**Kapsamı neden bozmuyor.** Kapsam dışı olan şey kuyruk ve ayrı süreç. Burada ikisi de yok: bir tablo ve aynı süreçte çalışan bir zamanlanmış metot. Yeni bağımlılık ve işletilecek yeni bir bileşen gelmiyor.
+
+**Dikkat edilen noktalar.**
+
+- **Olay yazılamazsa onay da geri sarar.** K-011'in kaçındığı şeye benziyor ama aynısı değil: alıcı bulma ve mesaj üretme gibi patlayabilecek işler işleyicide, yazım anında yalnızca düz bir `INSERT` var. O `INSERT`'in veri yüzünden patlamaması için kolonlar kaynaklarıyla aynı genişlikte ve durum değerleri bu tabloda ikinci kez denetlenmiyor.
+- **Yazım `MANDATORY`.** Transaction dışında yayınlanan olay hata verir. `@TransactionalEventListener` aynı olayı sessizce yok sayardı.
+- **`FOR UPDATE SKIP LOCKED`.** Uygulama tek kopya çalışıyor, ama dağıtım sırasında eski ve yeni kopya kısa süre birlikte yaşayabilir. Kilit olmasa ikisi de aynı olaydan bildirim üretirdi.
+- **Bozuk olay kuyruğu tıkamaz.** Her olay kendi transaction'ında işleniyor; patlayan olay artan aralıklarla sekiz kez deneniyor (yaklaşık on dakika), sonra `BASARISIZ` olup `ERROR` logu bırakıyor. Kendiliğinden tekrar denenmez, birinin bakması gerekir.
+- **Kısmi indeks.** İşlenmiş satırlar silinmiyor, o yüzden yoklama yalnızca bekleyenleri kapsayan indeksi kullanmalı. 200.000 işlenmiş ve 20 bekleyen satırda ölçüldü: durum sorguda sabitken 0,015 ms, parametreyken (genel plan) 11,9 ms.
+
+**Ödünler.**
+
+- Bildirim anında değil, varsayılan 2 saniyelik yoklamayla geliyor.
+- Sıra garantisi yok: denemesi başarısız olan olay arkasındakilerden sonra işlenir. Gecikmiş bir "onayınızı bekliyor" bildirimi, o arada karara bağlanmış bir talebi gösterebilir.
+- `bildirim.olusturan_kullanici` artık işlemi yapan kişi değil `sistem`. İşlemi yapan `giden_olay` ve `onay_kaydi` satırlarında.
+- İşleyicinin logları isteğin korelasyon kimliğini taşımıyor; eşleştirme talep kimliği üzerinden.
+
+**Üretime çıkarken.** Bekleyen ve `BASARISIZ` olay sayısı için metrik ve alarm; eski `ISLENDI` satırlarını silen bir iş.
+
+**Reddedilen alternatif 1.** `AFTER_COMMIT` dinleyicisine yeniden deneme eklemek. Reddedildi: hatayı çözer, kapanmayı çözmez. Denenecekler listesi yine bellekte.
+
+**Reddedilen alternatif 2.** Kafka veya RabbitMQ. Kapsam bir yana, sorunu da çözmüyor: commit ile kuyruğa gönderim arasında aynı boşluk var, outbox yine gerekirdi.
+
+**Reddedilen alternatif 3.** Spring Modulith'in olay yayın kaydı. Aynı işi yapan hazır çözüm. Reddedildi çünkü tek olay tipi için yeni bir bağımlılık ve serileştirilmiş olay biçimi getiriyor; burada gereken bir tablo ve birkaç kısa metot.
+
+**Kanıt.** `GidenOlayServisiTest.islemGeriSararsaOlayKalmaz`, `GidenOlayServisiTest.olayYazilamazsaKararDaGeriSarar`, `GidenOlayIsleyiciTest.islenmemisOlaySonrakiTurdaIslenir`, `GidenOlayIsleyiciTest.isaretlenemeyenOlayBildirimBirakmaz`, `GidenOlayIsleyiciTest.esZamanliIsleyicilerTekBildirimUretir`, `ZamanlamaYapilandirmasiTest`.
