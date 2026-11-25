@@ -2,9 +2,21 @@
 
 [![CI](https://github.com/ebraronuk/talep-onay-sistemi/actions/workflows/ci.yml/badge.svg)](https://github.com/ebraronuk/talep-onay-sistemi/actions/workflows/ci.yml)
 
-Personel talep açar, birim amiri onaylar veya reddeder, her durum değişikliği silinemez bir denetim kaydına yazılır, ilgili kişiye bildirim düşer, yönetici özet raporu görür.
+Personel talep açar, birim amiri onaylar veya reddeder, her durum değişikliği bir denetim kaydına yazılır (`UPDATE` ve `DELETE` veritabanı seviyesinde engellenir), ilgili kişiye bildirim düşer, yönetici özet raporu görür.
 
 Spring Boot 3.5 · Java 21 · PostgreSQL 16 · Spring Security (JWT) · React + TypeScript · Docker · GitHub Actions
+
+![Tüm talepler ekranı](docs/ekranlar/talep-listesi.png)
+
+Yönetici tüm birimleri görüyor; durum rozetleri talebin akışın neresinde olduğunu söylüyor.
+
+![İkinci kademe onay ekranı](docs/ekranlar/onay-ekrani.png)
+
+Tutar limitini aşan bir talep, birim amirinin onayından sonra yöneticiye düşüyor. Altındaki onay geçmişi her durum geçişini kimin ne zaman yaptığıyla birlikte tutuyor; bu kayıtlar üzerinde değişiklik ve silme veritabanı seviyesinde engelli.
+
+![Özet rapor ekranı](docs/ekranlar/yonetici-raporu.png)
+
+Görüntüler demo profilinin tohum verisinden alındı ve `cd frontend && npm run ekran` ile yeniden üretilebiliyor.
 
 **Derlemeyi kıran kapılar.** Hiçbiri yalnızca rapor üretmiyor; her biri
 aşağıdaki aşamada derlemeyi ya da PR'ı durduruyor:
@@ -32,11 +44,9 @@ manager approves or rejects it, every status change is written to an audit trail
 that cannot be modified, the relevant person is notified, and an executive sees
 the summary report.
 
-The documentation is in Turkish because the domain language is Turkish and the
-project targets Turkish public-sector and financial institutions. The code
-follows the same convention: business-domain names are Turkish (`Talep`,
-`OnayKaydi`), framework concepts stay English (`Repository`, `Service`,
-`Controller`). The reasoning is written up in `docs/decisions.md` (K-007).
+Documentation and domain names are Turkish: business-domain names are Turkish
+(`Talep`, `OnayKaydi`), framework concepts stay English (`Repository`,
+`Service`, `Controller`). The reasoning is written up in `docs/decisions.md` (K-007).
 
 **What makes it worth a look:**
 

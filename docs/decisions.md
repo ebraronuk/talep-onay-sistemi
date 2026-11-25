@@ -13,7 +13,7 @@ Kurumsal bir talep ve onay iş akışı yönetir:
 1. Personel bir talep oluşturur (taslak olarak kaydedebilir, sonra onaya gönderir).
 2. Talep, personelin bağlı olduğu birimin amirine düşer.
 3. Amir talebi onaylar veya reddeder; her iki durumda da gerekçe yazabilir.
-4. Her durum değişikliği kalıcı bir onay kaydına (denetim izi) yazılır ve silinemez.
+4. Her durum değişikliği kalıcı bir onay kaydına (denetim izi) yazılır; bu kayıt üzerinde `UPDATE` ve `DELETE` veritabanı seviyesinde engellenir (K-014).
 5. Yönetici rolü, birim bazında talepleri listeler ve özet raporu görür. Talep tutarı yapılandırılabilir bir limiti aşıyorsa, birim amirinin onayından sonra ikinci kademe onayı da yönetici verir.
 6. Kimlik doğrulama JWT ile yapılır, yetkilendirme rol bazlıdır.
 
@@ -274,3 +274,16 @@ Sıranın sabitlenmesi asıl çözüm değil, hatayı tekrar üretilebilir yapan
 **Üretime çıkarken.** Arka uca ve ön yüze kurumun kullandığı hata takip aracı eklenir, korelasyon kimliği olaya etiket olarak geçer. `metrics` ucu Prometheus'a açılır; 5xx oranı ve `talep.karar.suresi` için alarm kurulur. Log toplayan bir yığın varsa logback encoder'ı JSON'a çevrilir. Servis sayısı birden fazla olursa OpenTelemetry eklenir.
 
 **Reddedilen alternatif.** `docker-compose.yml`'e Prometheus ve Grafana eklemek. Reddedildi: izlenecek gerçek trafik yok. Ekran görüntüsünde iyi durur ama bir şey kanıtlamaz, kurulum süresini ve README'yi büyütür.
+
+---
+
+## K-022: Pasife alınan kullanıcının elindeki token süresi dolana kadar geçerli
+
+**Karar.** JWT filtresi her istekte veritabanından kullanıcı yüklemiyor; kimlik doğrudan token iddialarından kuruluyor (`JwtKimlikFiltresi`). `KullaniciDetayServisi` kullanıcıyı `disabled` olarak işaretliyor ama bu yalnızca giriş anında devreye giriyor. Yani bir kullanıcı pasife alındığında elindeki token, geçerlilik süresi (`talep.jwt.gecerlilik-suresi-dakika`, varsayılan 60) bitene kadar çalışmaya devam ediyor. Bu bilinçli ve belgeli bir sınır, gözden kaçmış bir durum değil.
+
+**Gerekçe.** Her istekte `UserDetails` yüklemek her isteğe bir veritabanı sorgusu ekler. Token'ı durumsuz tutmanın tek sebebi tam olarak o sorgudan kaçınmak; filtreye kullanıcı yüklemesi koymak JWT'yi bir oturum tablosuna çevirir ve durumsuzluğun getirdiği her şeyi geri verir. Pencere süresiz değil, TTL ile sınırlı ve TTL yapılandırmadan geliyor.
+
+**Üretime çıkarken.** Onay yetkisi taşıyan roller için 60 dakikalık bir pencere kabul edilemez: yetkisi geri alınan bir amir o süre boyunca onay verebilir. İki yol var. (1) TTL'i dakikalar seviyesine çekip yenileme token'ı eklemek: ek altyapı istemez, maliyeti daha sık yenileme çağrısı. (2) İptal edilen `jti` listesini paylaşılan bir önbellekte tutmak: anında iptal sağlar, karşılığında Redis benzeri bir bileşen getirir ve kapsam kararıyla çelişir. Kurumun iptal gereksinimi ölçülmeden ikincisi seçilmemeli.
+
+**Reddedilen alternatif.** Filtreye `isAktif()` kontrolü eklemek. Reddedildi: sorunu çözüyor ama her isteğe sorgu maliyeti bindiriyor ve token'ın durumsuzluğunu ortadan kaldırıyor. Ölçülmemiş bir gereksinim için ödenen bu bedel yerine sınırı yazıya geçirmek dürüst olan.
+
