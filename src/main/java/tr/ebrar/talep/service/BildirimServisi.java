@@ -7,10 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 import tr.ebrar.talep.domain.Bildirim;
 import tr.ebrar.talep.domain.Kullanici;
@@ -30,10 +27,8 @@ import tr.ebrar.talep.service.olay.TalepDurumuDegistiOlayi;
  * <p>Neden olay (event) ile? Onay islemi ile bildirim yazmanin ayni transaction'da
  * olmasi gerekmiyor. Bildirim tablosuna yazim herhangi bir sebeple patlarsa onayin
  * geri sarmasini istemeyiz; onay is acisindan asil olan, bildirim yan etki.
- * Bu yuzden dinleyici AFTER_COMMIT'te ve kendi transaction'inda calisiyor.
- *
- * <p>Karsi taraf: bildirim yazilmazsa kimse haberdar olmaz ve bunu fark etmek zor.
- * Onun icin hata yutulmuyor, log'a ERROR olarak dusuyor.
+ * Bu yuzden bildirim istek sirasinda degil, olay kutusundaki olay islenirken yaziliyor
+ * (bkz. {@link GidenOlayServisi}).
  */
 @Service
 @Transactional(readOnly = true)
@@ -53,25 +48,21 @@ public class BildirimServisi {
         this.talepRepository = talepRepository;
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void talepDurumuDegisti(TalepDurumuDegistiOlayi olay) {
-        try {
-            Talep talep = talepRepository.findById(olay.talepId())
-                    .orElseThrow(() -> new KayitBulunamadiException("Talep", olay.talepId()));
+    /**
+     * Hata burada yakalanmiyor: cagiran, olayi islendi saymamak ve yeniden denemek icin
+     * hatayi gormek zorunda.
+     */
+    @Transactional
+    public void durumDegisikliginiBildir(TalepDurumuDegistiOlayi olay) {
+        Talep talep = talepRepository.findById(olay.talepId())
+                .orElseThrow(() -> new KayitBulunamadiException("Talep", olay.talepId()));
 
-            List<Kullanici> alicilar = aliciBelirle(olay);
-            String mesaj = mesajUret(olay);
+        List<Kullanici> alicilar = aliciBelirle(olay);
+        String mesaj = mesajUret(olay);
 
-            alicilar.forEach(alici -> bildirimRepository.save(new Bildirim(alici, talep, mesaj)));
+        alicilar.forEach(alici -> bildirimRepository.save(new Bildirim(alici, talep, mesaj)));
 
-            log.debug("Bildirim yazildi: talep={}, alici sayisi={}", olay.talepId(), alicilar.size());
-        } catch (RuntimeException e) {
-            // Bilincli olarak yutuyoruz: onay zaten commit oldu, geri donusu yok.
-            // Ama sessizce degil, iz birakarak.
-            log.error("Bildirim yazilamadi. talepId={}, gecis={}->{}",
-                    olay.talepId(), olay.oncekiDurum(), olay.yeniDurum(), e);
-        }
+        log.debug("Bildirim yazildi: talep={}, alici sayisi={}", olay.talepId(), alicilar.size());
     }
 
     public Page<BildirimDto> bildirimlerim(String kullaniciAdi, Pageable sayfaIstegi) {

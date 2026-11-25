@@ -1,14 +1,10 @@
 package tr.ebrar.talep.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +27,7 @@ import tr.ebrar.talep.domain.Rol;
 import tr.ebrar.talep.repository.BildirimRepository;
 import tr.ebrar.talep.repository.BirimRepository;
 import tr.ebrar.talep.repository.KullaniciRepository;
+import tr.ebrar.talep.service.GidenOlayIsleyici;
 
 /**
  * Iki kademeli onay akisinin uctan uca dogrulanmasi.
@@ -65,6 +62,9 @@ class IkiKademeliOnayAkisiTest extends VeritabaniTestTemeli {
 
     @Autowired
     private BildirimRepository bildirimRepository;
+
+    @Autowired
+    private GidenOlayIsleyici gidenOlayIsleyici;
 
     @Autowired
     private PasswordEncoder sifreKodlayici;
@@ -113,10 +113,8 @@ class IkiKademeliOnayAkisiTest extends VeritabaniTestTemeli {
                 .andExpect(jsonPath("$.durum").value("YONETICI_ONAYINDA"));
 
         // 4. Yoneticiye bildirim dusmus olmali
-        await().atMost(Duration.ofSeconds(5))
-                .pollInterval(200, TimeUnit.MILLISECONDS)
-                .untilAsserted(() ->
-                        assertThat(bildirimRepository.countByAliciIdAndOkunduFalse(yoneticiId)).isEqualTo(1));
+        gidenOlayIsleyici.bekleyenleriIsle();
+        assertThat(bildirimRepository.countByAliciIdAndOkunduFalse(yoneticiId)).isEqualTo(1);
 
         // 5. Yonetici sonuclandiriyor
         mockMvc.perform(post("/api/v1/talepler/" + talepId + "/karar")

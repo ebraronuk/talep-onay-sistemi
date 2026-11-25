@@ -90,6 +90,11 @@ talep:
     # Kurumun limiti degisince kod degismesin diye yapilandirmada.
     yonetici-limiti: ${ONAY_YONETICI_LIMITI:50000}
 
+  giden-olay:
+    # Olay kutusunun iki yoklamasi arasindaki sure. Her sey yolundayken bildirim
+    # en fazla bu kadar gecikiyor.
+    aralik: ${GIDEN_OLAY_ARALIK:2s}
+
   jwt:
     # Uretimde JWT_SECRET ortam degiskeni ZORUNLU olarak verilir.
     # Asagidaki deger yalnizca yerel gelistirme icindir ve depoda gizli veri sayilmaz.

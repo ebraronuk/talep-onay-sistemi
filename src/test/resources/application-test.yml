@@ -9,6 +9,9 @@ spring:
     enabled: true
 
 talep:
+  giden-olay:
+    # Turlar testlerde elle kosuluyor (bkz. GidenOlayIsleyiciTest).
+    zamanlama-etkin: false
   jwt:
     gizli-anahtar: test-ortami-icin-en-az-256-bit-uzunlugunda-sabit-anahtar-degeri
     gecerlilik-suresi-dakika: 60
