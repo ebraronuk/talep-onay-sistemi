@@ -15,6 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
  * artik o trigger'a takiliyor. TRUNCATE, satir seviyesindeki trigger'lari
  * tetiklemedigi icin dogru arac; ayrica cok daha hizli.
  *
+ * <p>giden_olay bilerek ilk sirada: TRUNCATE kilitleri yazilis sirasiyla aliyor.
+ * Olay isleyicisi once giden_olay satirini, sonra bildirimi kilitliyor; tersi sirada
+ * temizlik, zamanlayicinin acik oldugu testte kilitlenmeye (deadlock) acik kalirdi.
+ *
  * <p>RESTART IDENTITY: id sayaclari sifirlaniyor, boylece testler arasinda
  * id degerleri ongorulebilir kaliyor.
  */
@@ -30,7 +34,8 @@ public class VeritabaniTemizleyici {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void hepsiniTemizle() {
         entityManager
-                .createNativeQuery("TRUNCATE TABLE bildirim, onay_kaydi, talep, kullanici, birim RESTART IDENTITY CASCADE")
+                .createNativeQuery("TRUNCATE TABLE giden_olay, bildirim, onay_kaydi, talep, kullanici, birim "
+                        + "RESTART IDENTITY CASCADE")
                 .executeUpdate();
     }
 }

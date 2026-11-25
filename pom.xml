@@ -349,6 +349,7 @@
               <targetTests>
                 <param>tr.ebrar.talep.domain.TalepDurumuTest</param>
                 <param>tr.ebrar.talep.domain.VarlikKimlikTest</param>
+                <param>tr.ebrar.talep.domain.GidenOlayTest</param>
                 <param>tr.ebrar.talep.service.TalepServisiTest</param>
               </targetTests>
               <excludedMethods>

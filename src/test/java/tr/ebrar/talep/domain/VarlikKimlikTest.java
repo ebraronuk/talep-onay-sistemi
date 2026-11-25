@@ -2,6 +2,7 @@ package tr.ebrar.talep.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.util.HashSet;
 
 import org.junit.jupiter.api.DisplayName;
@@ -22,7 +23,7 @@ import tr.ebrar.talep.destek.VeriUretici;
 class VarlikKimlikTest {
 
     /**
-     * Kimlik sozlesmesi bes varlikta da ayni. Ayni iddialari bes kez yazmak yerine
+     * Kimlik sozlesmesi alti varlikta da ayni. Ayni iddialari alti kez yazmak yerine
      * uretici fonksiyonlari parametre olarak veriyoruz; yeni bir varlik eklendiginde
      * buraya tek satir eklemek yetiyor.
      */
@@ -37,7 +38,9 @@ class VarlikKimlikTest {
                 org.junit.jupiter.params.provider.Arguments.of(
                         "OnayKaydi", (java.util.function.Supplier<Object>) VarlikKimlikTest::yeniOnayKaydi),
                 org.junit.jupiter.params.provider.Arguments.of(
-                        "Bildirim", (java.util.function.Supplier<Object>) VarlikKimlikTest::yeniBildirim));
+                        "Bildirim", (java.util.function.Supplier<Object>) VarlikKimlikTest::yeniBildirim),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "GidenOlay", (java.util.function.Supplier<Object>) () -> VeriUretici.gidenOlay(3L, Instant.EPOCH)));
     }
 
     static Kullanici yeniKullanici() {
