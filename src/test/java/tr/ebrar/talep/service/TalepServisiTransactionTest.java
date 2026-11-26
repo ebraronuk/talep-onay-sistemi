@@ -2,10 +2,6 @@ package tr.ebrar.talep.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
-
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +23,7 @@ import tr.ebrar.talep.domain.TalepDurumu;
 import tr.ebrar.talep.domain.TalepTuru;
 import tr.ebrar.talep.repository.BildirimRepository;
 import tr.ebrar.talep.repository.BirimRepository;
+import tr.ebrar.talep.repository.GidenOlayRepository;
 import tr.ebrar.talep.repository.KullaniciRepository;
 import tr.ebrar.talep.repository.OnayKaydiRepository;
 import tr.ebrar.talep.repository.TalepRepository;
@@ -62,6 +59,12 @@ class TalepServisiTransactionTest extends VeritabaniTestTemeli {
 
     @Autowired
     private BildirimRepository bildirimRepository;
+
+    @Autowired
+    private GidenOlayRepository gidenOlayRepository;
+
+    @Autowired
+    private GidenOlayIsleyici gidenOlayIsleyici;
 
     @Autowired
     private VeritabaniTemizleyici veritabaniTemizleyici;
@@ -160,10 +163,9 @@ class TalepServisiTransactionTest extends VeritabaniTestTemeli {
         // onaya gonderme adimi @BeforeEach icinde yapildi; amire bildirim dusmus olmali.
         Kullanici amir = kullaniciRepository.findByKullaniciAdi("trxamir").orElseThrow();
 
-        await().atMost(Duration.ofSeconds(5))
-                .pollInterval(200, TimeUnit.MILLISECONDS)
-                .untilAsserted(() ->
-                        assertThat(bildirimRepository.countByAliciIdAndOkunduFalse(amir.getId())).isEqualTo(1));
+        gidenOlayIsleyici.bekleyenleriIsle();
+
+        assertThat(bildirimRepository.countByAliciIdAndOkunduFalse(amir.getId())).isEqualTo(1);
     }
 
     @Test
@@ -171,12 +173,16 @@ class TalepServisiTransactionTest extends VeritabaniTestTemeli {
     void rollbackOlanIslemdeBildirimYok() {
         Kullanici personel = kullaniciRepository.findByKullaniciAdi("trxpersonel").orElseThrow();
         long oncekiBildirim = bildirimRepository.countByAliciIdAndOkunduFalse(personel.getId());
+        long oncekiOlay = gidenOlayRepository.count();
 
         assertThatThrownBy(() -> talepServisi.karar(
                 talepId, new OnayKarariKomutu(Karar.ONAYLA, "y".repeat(1500)), "trxamir"))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
-        // Dinleyici AFTER_COMMIT'te. Commit olmadigi icin hic tetiklenmemeli.
+        // Islem geri sardigi icin isleyiciye bildirim uretecek bir olay kalmamali.
+        gidenOlayIsleyici.bekleyenleriIsle();
+
+        assertThat(gidenOlayRepository.count()).isEqualTo(oncekiOlay);
         assertThat(bildirimRepository.countByAliciIdAndOkunduFalse(personel.getId()))
                 .isEqualTo(oncekiBildirim);
     }

@@ -30,7 +30,7 @@ aşağıdaki aşamada derlemeyi ya da PR'ı durduruyor:
 | Ön yüz satır kapsamı | %95 taban (ölçülen %97) | `npm run test:kapsam` |
 | Uçtan uca (Playwright) | 2 senaryo, yeniden deneme yok | CI'da `docker compose` ile gerçek yığın |
 
-**232 test yeşil** (183 arka uç, 49 ön yüz), üstüne gerçek yığına karşı 2 uçtan uca senaryo. Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
+**257 test yeşil** (208 arka uç, 49 ön yüz), üstüne gerçek yığına karşı 2 uçtan uca senaryo. Performans iddiaları ölçüldü, çıktıları [docs/performans.md](docs/performans.md) içinde. Mimari kararlar gerekçeleri ve reddedilen alternatifleriyle [docs/decisions.md](docs/decisions.md), katman kuralları ve nesne tasarımı [docs/mimari.md](docs/mimari.md) içinde.
 
 ---
 
@@ -181,6 +181,7 @@ erDiagram
     KULLANICI ||--o{ ONAY_KAYDI : "işlem yapan"
     TALEP ||--o{ BILDIRIM : "konu"
     KULLANICI ||--o{ BILDIRIM : "alıcı"
+    TALEP ||--o{ GIDEN_OLAY : "işlenecek olay"
 
     BIRIM {
         bigint id PK
@@ -256,7 +257,7 @@ sequenceDiagram
     participant API as REST API
     participant SRV as TalepServisi
     participant DB as PostgreSQL
-    participant BLD as BildirimServisi
+    participant ISL as Olay işleyicisi
 
     P->>API: POST /api/v1/talepler
     API->>SRV: olustur(komut)
@@ -266,35 +267,31 @@ sequenceDiagram
     P->>API: POST /api/v1/talepler/{id}/onaya-gonder
     API->>SRV: onayaGonder(id)
     Note over SRV: sahibi mi? durum geçişi geçerli mi?
-    SRV->>DB: durum BEKLEMEDE + onay kaydı
-    Note over SRV,BLD: commit sonrası
-    SRV-)BLD: TalepDurumuDegistiOlayi
-    BLD->>DB: birimdeki amirlere bildirim
+    SRV->>DB: durum BEKLEMEDE + onay kaydı + giden olay
+    Note over DB,ISL: ayrı transaction, yoklamayla
+    ISL->>DB: birimdeki amirlere bildirim + olay işlendi
 
     A->>API: POST /api/v1/talepler/{id}/karar
     Note over SRV: rolü AMIR mi? aynı birim mi?<br/>kendi talebi değil ya?
 
     alt tutar limit altında (veya yok)
-        SRV->>DB: durum ONAYLANDI + onay kaydı
-        SRV-)BLD: TalepDurumuDegistiOlayi
-        BLD->>DB: talep sahibine bildirim
+        SRV->>DB: durum ONAYLANDI + onay kaydı + giden olay
         API-->>A: 200 OK
+        ISL->>DB: talep sahibine bildirim + olay işlendi
     else tutar limit üstünde: ikinci kademe
-        SRV->>DB: durum YONETICI_ONAYINDA + onay kaydı
-        SRV-)BLD: TalepDurumuDegistiOlayi
-        BLD->>DB: yöneticilere bildirim
+        SRV->>DB: durum YONETICI_ONAYINDA + onay kaydı + giden olay
         API-->>A: 200 OK
+        ISL->>DB: yöneticilere bildirim + olay işlendi
 
         Y->>API: POST /api/v1/talepler/{id}/karar
         Note over SRV: rolü YONETICI mi?<br/>durum YONETICI_ONAYINDA mı?
-        SRV->>DB: durum ONAYLANDI + onay kaydı
-        SRV-)BLD: TalepDurumuDegistiOlayi
-        BLD->>DB: talep sahibine bildirim
+        SRV->>DB: durum ONAYLANDI + onay kaydı + giden olay
         API-->>Y: 200 OK
+        ISL->>DB: talep sahibine bildirim + olay işlendi
     end
 ```
 
-Bildirim yazımı ana işlemden **ayrı bir transaction'da**, commit sonrasında çalışır. Bildirim yazılamazsa onay geri sarmaz: onay iş açısından asıl olan, bildirim yan etki. Karar ve gerekçesi: [decisions K-011](docs/decisions.md).
+Bildirim olayı, durum değişikliği ve denetim kaydıyla **aynı transaction'da** `giden_olay` tablosuna yazılır (transactional outbox); bildirimin kendisini ayrı bir işleyici, ayrı bir transaction'da üretir. Bildirim yazılamazsa onay geri sarmaz, olay kutuda kalıp yeniden denenir. Uygulama arada kapanırsa olay kaybolmaz, açılışta kaldığı yerden devam eder. Karar ve gerekçesi: [decisions K-011 ve K-023](docs/decisions.md).
 
 ---
 
@@ -328,7 +325,7 @@ node scripts/yuk-testi.mjs
 ## Testler
 
 ```bash
-./mvnw clean verify          # arka uç: 183 test + biçim denetimi + kapsam eşiği
+./mvnw clean verify          # arka uç: 208 test + biçim denetimi + kapsam eşiği
 cd frontend && npm test      # ön yüz: 49 test
 cd frontend && npm run e2e   # uçtan uca: önce docker compose up --build
 ```
@@ -353,7 +350,7 @@ Yetki tablosu, sızdırmama kuralları ve doğrulanan saldırı senaryoları: [d
 
 ## Kapsam dışı bırakılanlar
 
-Bilinçli olarak yok: mikroservis, mesaj kuyruğu, Redis, iş akışı motoru, Redux, soft delete, çok kiracılı yapı, dosya eki, e-posta/SMS. Her birinin gerekçesi ve reddedilen alternatifi [docs/decisions.md](docs/decisions.md) içinde (Kapsam bölümü ve K-001 ... K-021).
+Bilinçli olarak yok: mikroservis, mesaj kuyruğu, Redis, iş akışı motoru, Redux, soft delete, çok kiracılı yapı, dosya eki, e-posta/SMS. Her birinin gerekçesi ve reddedilen alternatifi [docs/decisions.md](docs/decisions.md) içinde (Kapsam bölümü ve K-001 ... K-023).
 
 ---
 
@@ -367,9 +364,9 @@ Bilinçli olarak yok: mikroservis, mesaj kuyruğu, Redis, iş akışı motoru, R
 │   ├── service/         iş kuralları, transaction sınırları, DTO çevrimi
 │   ├── security/        JWT üretimi ve doğrulaması, güvenlik yapılandırması
 │   ├── web/             controller, hata yönetimi, korelasyon kimliği
-│   └── config/          JPA auditing, OpenAPI, demo verisi
+│   └── config/          JPA auditing, zamanlama, OpenAPI, demo verisi
 ├── src/main/resources/db/migration/   Flyway şema dosyaları
-├── src/test/java/       183 test (mimari kuralları dahil)
+├── src/test/java/       208 test (mimari kuralları dahil)
 ├── frontend/            React + TypeScript + Vite
 ├── scripts/yuk-testi.mjs
 ├── docs/

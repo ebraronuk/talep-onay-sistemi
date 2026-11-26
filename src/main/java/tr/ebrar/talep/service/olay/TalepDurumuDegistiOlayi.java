@@ -5,9 +5,9 @@ import tr.ebrar.talep.domain.TalepDurumu;
 /**
  * Talep durumu degistiginde yayinlanir.
  *
- * <p>Icinde varlik degil <b>id</b> tasiyor. Sebep: dinleyici commit'ten sonra
- * calisiyor, o noktada varliklar kalicilik baglamindan ayrilmis oluyor.
- * Varligi tasisaydik dinleyicide LazyInitializationException yerdik.
+ * <p>Icinde varlik degil <b>id</b> tasiyor. Sebep: olay kutuya yazilip cok sonra, baska
+ * bir transaction'da, hatta uygulama yeniden acildiktan sonra okunabiliyor. O noktada
+ * yayinlayanin varliklari ortada olmuyor.
  */
 public record TalepDurumuDegistiOlayi(
         Long talepId,

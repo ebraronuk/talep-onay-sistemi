@@ -1,9 +1,13 @@
 package tr.ebrar.talep.destek;
 
+import java.time.Instant;
+
 import tr.ebrar.talep.domain.Birim;
+import tr.ebrar.talep.domain.GidenOlay;
 import tr.ebrar.talep.domain.Kullanici;
 import tr.ebrar.talep.domain.Rol;
 import tr.ebrar.talep.domain.Talep;
+import tr.ebrar.talep.domain.TalepDurumu;
 import tr.ebrar.talep.domain.TalepTuru;
 
 /**
@@ -34,6 +38,12 @@ public final class VeriUretici {
 
     public static Talep talep(String baslik, Kullanici talepEden) {
         return new Talep(baslik, baslik + " icin aciklama metni.", TalepTuru.DIGER, talepEden);
+    }
+
+    /** Veritabanina yazilmayan testler icin; kisi ve birim kimlikleri rastgele degerler. */
+    public static GidenOlay gidenOlay(Long talepId, Instant simdi) {
+        return new GidenOlay(
+                talepId, "Ornek talep", TalepDurumu.TASLAK, TalepDurumu.BEKLEMEDE, 10L, 10L, 20L, simdi);
     }
 
     /**
